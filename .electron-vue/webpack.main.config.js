@@ -18,7 +18,7 @@ let mainConfig = {
   module: {
     rules: [
       {
-        test: /\.(js|vue)$/,
+        test: /\.(js)$/,
         enforce: 'pre',
         exclude: /node_modules/,
         use: {
@@ -32,14 +32,6 @@ let mainConfig = {
         test: /\.js$/,
         use: 'babel-loader',
         exclude: /node_modules/
-      },
-      {
-        test: /\.css$/,
-        use: [ 'style-loader', 'css-loader' ],
-      },
-      {
-        test: /\.less$/,
-        use: [ 'style-loader', 'css-loader', 'less-loader' ],
       },
       {
         test: /\.node$/,
@@ -60,7 +52,7 @@ let mainConfig = {
     new webpack.NoEmitOnErrorsPlugin()
   ],
   resolve: {
-    extensions: [ '.js', '.json', '.node' ]
+    extensions: ['.js', '.json', '.node']
   },
   target: 'electron-main'
 }

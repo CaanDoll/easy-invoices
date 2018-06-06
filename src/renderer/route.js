@@ -7,11 +7,15 @@ for (const menu of menus) {
   childrenRoutes.push(menu);
 }
 
+childrenRoutes.push({
+  path: '*',
+  redirect: menus[ 0 ].path,
+});
+
 const routes = [
   {
     path: '/',
     component: Home,
-    redirect: '/welcome',
     children: childrenRoutes,
   },
 ];

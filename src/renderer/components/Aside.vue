@@ -6,7 +6,6 @@
         .layout-menu-left {
             height: 100%;
             box-shadow: 0 0 7px #000;
-            overflow-y: auto;
         }
     }
 
@@ -14,11 +13,12 @@
 
 <template>
     <aside>
-        <Menu ref="menu" :active-name="activeMenuName" @on-select="selectMenu"
-              theme="dark" width="240px" accordion class="layout-menu-left"
-              :class="{'menuToRight':toggle === false,'menuToLeft':toggle}">
-            <Menu-item v-for="(menu, index) in MENU" :name="menu.path" :key="index" :title="menu.name">
-                <Icon type="monitor" :size="14"></Icon>
+        <Menu ref="menu" @on-select="selectMenu"
+              theme="dark" width="100%" :active-name="activeMenuName" accordion class="layout-menu-left">
+            <Menu-item v-for="(menu, index) in MENU" :name="menu.path" :key="index">
+                <Tooltip :content="menu.title" placement="right">
+                    <Icon :type="menu.icon" :size="20"></Icon>
+                </Tooltip>
             </Menu-item>
         </Menu>
     </aside>
@@ -31,12 +31,19 @@ export default {
   data() {
     return {
       MENU,
+      activeMenuName: '',
     };
   },
   methods: {
     selectMenu(path) {
       this.$router.push({ path });
     },
+  },
+  created() {
+    this.activeMenuName = this.$route.path;
+    this.$nextTick(() => {
+      this.$refs.menu.updateActiveName();
+    });
   },
 };
 </script>

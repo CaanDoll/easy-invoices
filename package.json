@@ -1,7 +1,7 @@
 {
-  "name": "easy-invoices",
+  "name": "my-project",
   "version": "0.0.1",
-  "author": "caan.chen <caandoll@aliyun.com>",
+  "author": "caandoll <caandoll@aliyun.com>",
   "description": "An electron-vue project",
   "license": "MIT",
   "main": "./dist/electron/main.js",
@@ -53,10 +53,14 @@
     }
   },
   "dependencies": {
-    "vue-electron": "^1.0.6"
+    "axios": "^0.16.1",
+    "sqlite3": "^4.0.0",
+    "vue": "^2.3.3",
+    "vue-electron": "^1.0.6",
+    "vue-router": "^2.5.3",
+    "vuex": "^2.3.1"
   },
   "devDependencies": {
-    "axios": "^0.16.1",
     "babel-core": "^6.25.0",
     "babel-eslint": "^7.2.3",
     "babel-loader": "^7.1.1",
@@ -76,6 +80,7 @@
     "electron-builder": "^19.19.1",
     "electron-debug": "^1.4.0",
     "electron-devtools-installer": "^2.2.0",
+    "electron-rebuild": "^1.7.3",
     "eslint": "^4.4.1",
     "eslint-config-egg": "^7.0.0",
     "eslint-friendly-formatter": "^3.0.0",
@@ -85,20 +90,17 @@
     "extract-text-webpack-plugin": "^3.0.0",
     "file-loader": "^0.11.2",
     "html-webpack-plugin": "^2.30.1",
-    "iview": "^2.14.0",
+    "iview": "^2.14.1",
     "less": "^3.0.4",
     "less-loader": "^4.1.0",
     "multispinner": "^0.2.1",
     "node-loader": "^0.6.0",
     "style-loader": "^0.18.2",
     "url-loader": "^0.5.9",
-    "vue": "^2.3.3",
     "vue-html-loader": "^1.2.4",
     "vue-loader": "^13.0.5",
-    "vue-router": "^2.5.3",
     "vue-style-loader": "^3.0.1",
     "vue-template-compiler": "^2.4.2",
-    "vuex": "^2.3.1",
     "webpack": "^3.5.2",
     "webpack-dev-server": "^2.7.1",
     "webpack-hot-middleware": "^2.18.2"

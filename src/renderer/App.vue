@@ -1,14 +1,33 @@
 <template>
-  <div id="app">
-    <router-view></router-view>
-  </div>
+    <div id="app">
+        <router-view style="height: 100%;"></router-view>
+    </div>
 </template>
 
 <script>
-export default {
-};
+export default {};
 </script>
 
 <style>
-  /* CSS */
+    html, body, #app {
+        height: 100%;
+    }
+
+    body {
+        color: #333;
+    }
+
+    .ivu-menu-vertical .ivu-menu-item {
+        padding: 14px 16px;
+    }
+
+    .ivu-table-border.ivu-table-border th {
+        text-align: center;
+    }
+
+    .ivu-page {
+        margin: 15px 20px 0 0;
+        float: right;
+    }
+
 </style>

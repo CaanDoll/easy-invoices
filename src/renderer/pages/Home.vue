@@ -2,14 +2,14 @@
     @import "../assets/less/global.less";
 
     .home-background {
-        height: 100%;
         position: relative;
+        background-color: #ddd;
         .aside {
             position: absolute;
             top: 0;
             bottom: 0;
             left: 0;
-            right: @view-left;
+            width: @view-left;
         }
         .container {
             position: absolute;
@@ -18,6 +18,7 @@
             left: @view-left;
             bottom: 0;
             overflow: auto;
+            padding: @view-padding;
         }
     }
 </style>
@@ -26,7 +27,7 @@
     <div class="home-background theme-color1">
         <Aside class="aside"></Aside>
         <div class="container">
-            <router-view></router-view>
+            <router-view style="height: 100%;"></router-view>
         </div>
     </div>
 </template>

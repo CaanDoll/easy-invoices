@@ -1,367 +1,282 @@
-<style lang="less">
-    .class-management {
-        position: relative;
-        .page {
-            position: absolute;
-            right: 20px;
-            margin: 20px 0;
-        }
-    }
-</style>
 <template>
-    <div class="class-management">
-
-        <Form :label-width="100" inline class="z-search-form">
-            <FormItem label="名称">
-                <Input v-model="searchFormData.name" style="width:180px"></Input>
+    <div>
+        <Form :label-width="90" inline>
+            <FormItem label="品名">
+                <Input v-model="search.name" style="width: 120px"></Input>
             </FormItem>
-            <FormItem label="父级分类">
-                <Select v-model="searchFormData.parent" placeholder="全部" style="width:180px">
-                    <Option value="">全部</Option>
-                    <Option v-for="(item, index) in parentLevel" :value="item._id" :key="index">{{item.name}}</Option>
-                </Select>
+            <FormItem label="进价">
+                <InputNumber v-model="search.bidMin" :precision="2"></InputNumber>-<InputNumber v-model="search.bidMax" :precision="2"></InputNumber>
             </FormItem>
-            <FormItem label="是否置于首页顶部" :label-width="120">
-                <Select v-model="searchFormData.isIndexTop" placeholder="全部" style="width:180px">
-                    <Option value="">全部</Option>
-                    <Option value="true">是</Option>
-                    <Option value="false">否</Option>
-                </Select>
+            <FormItem label="售价">
+                <InputNumber v-model="search.priceMin" :precision="2"></InputNumber>-<InputNumber v-model="search.priceMax" :precision="2"></InputNumber>
             </FormItem>
-            <FormItem>
-                <Button type="primary" icon="ios-search" @click="listData('search')">搜索</Button>
-                <Button type="primary" @click="showAddModal" style="margin-left:5px">添加分类</Button>
-            </FormItem>
+            <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
+            <Button type="primary" icon="plus-round" @click="add"></Button>
         </Form>
-
-
-        <Table :loading="tableLoading" :columns="columns" border :data="tableData"></Table>
-
-        <Page class="page"
-              :total="totalCount"
-              show-total
-              :page-size="searchParams.pageSize"
-              :current="searchParams.pageIndex"
-              @on-change="listData"
-        ></Page>
-
-        <Modal
-                v-model="addModalShow"
-                title="添加分类"
-                @on-ok="addClass"
-                @on-cancel="closeAddModal">
-            <Form ref="addFormValidate" :model="addData" :rules="ruleValidate" :label-width="120">
-                <FormItem label="名称" prop="name">
-                    <Input v-model="addData.name" placeholder="请输入名称"></Input>
-                </FormItem>
-                <FormItem label="父级分类">
-                    <Select v-model="addData.parent" style="width:180px">
-                        <Option value="">无</Option>
-                        <Option v-for="(item, index) in parentLevel" :value="item._id" :key="index">{{item.name}}
-                        </Option>
-                    </Select>
-                </FormItem>
-                <FormItem label="排序">
-                    <InputNumber :max="100" :min="1" v-model="addData.sort"></InputNumber>
-                </FormItem>
-                <FormItem label="是否置于首页顶部" v-show="!addData.parent">
-                    <Switch v-model="addData.isIndexTop" size="large">
-                        <span slot="open">是</span>
-                        <span slot="close">否</span>
-                    </Switch>
-                </FormItem>
-            </Form>
+        <Table border :columns="dataList_table_column" :data="dataList"></Table>
+        <Page :total="dataListTotalCount" :current="searchParams.pageIndex"
+              :page-size="searchParams.pageSize" @on-change="getDataList" show-total></Page>
+        <Modal v-model="modalShow" :mask-closable="false" :title="modalTitle" @on-cancel="modalShow = false">
+            <div>
+                <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
+                      :label-width="120">
+                    <FormItem label="角色名" prop="name">
+                        <Input v-model="modalParams.name" placeholder="必填，长度 3 - 15"
+                               style="width: 250px"></Input>
+                    </FormItem>
+                    <FormItem label="描述" prop="desc">
+                        <Input v-model="modalParams.desc" placeholder="非必填，长度 0 - 18"
+                               style="width: 250px"></Input>
+                    </FormItem>
+                    <FormItem label="权限" prop="resources">
+                        <div id="roleQueryTree" class="ztree"></div>
+                    </FormItem>
+                </Form>
+            </div>
             <div slot="footer">
-                <Button type="primary" :loading="buttonLoading" @click="addClass">提交</Button>
-                <Button type="ghost" style="margin-left: 8px" @click="closeAddModal">取消</Button>
+                <Button @click="modalShow = false">
+                    取消
+                </Button>
+                <Button type="primary" v-if="isModalAdd" @click="addConfirm">确认
+                </Button>
+                <Button type="primary" v-if="!isModalAdd" @click="editConfirm">确认
+                </Button>
             </div>
         </Modal>
-
-        <Modal
-                v-model="editModalShow"
-                title="编辑分类"
-                @on-ok="editClass"
-                @on-cancel="closeEditModal">
-            <Form ref="editFormValidate" :model="editData" :rules="ruleValidate" :label-width="120">
-                <FormItem label="名称" prop="name">
-                    <Input v-model="editData.name" placeholder="请输入名称"></Input>
-                </FormItem>
-                <FormItem label="父级分类">
-                    <Select v-model="editData.parent" style="width:180px">
-                        <Option value="">无</Option>
-                        <Option v-for="(item, index) in parentLevel" :value="item._id" :key="index"
-                                v-if="item._id !== editData._id">{{item.name}}
-                        </Option>
-                    </Select>
-                </FormItem>
-                <FormItem label="排序">
-                    <InputNumber :max="100" :min="1" v-model="editData.sort"></InputNumber>
-                </FormItem>
-                <FormItem label="是否置于首页顶部" v-show="!editData.parent">
-                    <Switch v-model="editData.isIndexTop" size="large">
-                        <span slot="open">是</span>
-                        <span slot="close">否</span>
-                    </Switch>
-                </FormItem>
-            </Form>
-            <div slot="footer">
-                <Button type="primary" :loading="buttonLoading" @click="editClass">提交</Button>
-                <Button type="ghost" style="margin-left: 8px" @click="closeEditModal">取消</Button>
-            </div>
-        </Modal>
-
     </div>
 </template>
+<style lang="less">
+</style>
 <script>
-import { _back_api } from '../../utils/axios';
 
 export default {
-  components: {},
   data() {
     return {
-      parentLevel: [],
-      buttonLoading: false,
-      tableLoading: false,
-      // 查找条件
-      searchFormData: {
+      // ----选值
+      statusList: [
+        {
+          value: 'true',
+          name: '启用',
+        }, {
+          value: 'false',
+          name: '禁用',
+        },
+      ],
+      // ----常用
+      search: {
         name: '',
-        parent: '',
-        isIndexTop: null,
+        bidMax: null,
+        bidMin: null,
+        priceMax: null,
+        priceMin: null,
         pageIndex: 1,
         pageSize: 10,
       },
       searchParams: {},
-      totalCount: 0,
-      columns: [
-        { title: '名称', key: 'name', align: 'center' },
+      dataList: [],
+      dataListTotalCount: 0,
+      dataList_table_column: [
         {
-          title: '父级分类', key: 'parent', align: 'center',
-          render: (h, param) => {
-            if (param.row.parent) {
-              return param.row.parent.name;
-            }
-            return '';
-          },
-        },
-        { title: '排序', key: 'sort', align: 'center' },
-        {
-          title: '是否置于首页顶部', key: 'isIndexTop', align: 'center',
-          render: (h, param) => {
-            if (param.row.isIndexTop === true) {
-              return h('Icon', {
-                props: {
-                  type: 'checkmark-round',
-                  color: '#19be6b',
-                },
-              });
-            }
-            return h('Icon', {
-              props: {
-                type: 'close-round',
-                color: '#ed3f14',
-              },
-            });
-          },
+          title: '品名',
+          key: 'name',
         },
         {
-          title: '操作', key: 'action', align: 'center',
-          render: (h, param) => {
-            return h('div', [
-              h('Button', {
-                props: {
-                  type: 'primary',
-                  size: 'small',
-                },
-                style: {
-                  marginRight: '5px',
-                },
-                on: {
-                  click: () => {
-                    this.editData.name = param.row.name;
-                    if (param.row.parent) {
-                      this.editData.parent = param.row.parent._id;
-                    } else {
-                      this.editData.parent = '';
-                    }
-                    this.editData.sort = param.row.sort;
-                    this.editData._id = param.row._id;
-                    this.editData.isIndexTop = param.row.isIndexTop;
-                    this.editModalShow = true;
+          title: '进价',
+          key: 'desc',
+        },
+        {
+          title: '零售价',
+          key: 'desc',
+        },
+        {
+          title: '数量',
+          key: 'desc',
+        },
+        {
+          title: '备注',
+          key: 'desc',
+        },
+        {
+          title: '操作',
+          key: 'action',
+          width: 200,
+          fixed: 'right',
+          align: 'center',
+          render: (h, params) => {
+            if (!params.row.default) {
+              return h('div', [
+                h('Button', {
+                  props: {
+                    type: 'primary',
+                    size: 'small',
                   },
-                },
-              }, '查看'),
-              h('Poptip', {
-                props: {
-                  type: 'error',
-                  confirm: true,
-                  title: '确认删除该分类？',
-                  style: { left: '91%' },
-                  placement: 'top-end',
-                  transfer: true,
-                },
-                on: {
-                  'on-ok': () => {
-                    _back_api.delete('/categories', { params: { _id: param.row._id } })
-                      .then(data => {
-                        if (data.data.status === 'SUCCEED') {
-                          this.listData('search');
-                          this.searchParent();
-                          this.$Message.success({
-                            content: '操作成功',
-                          });
-                        } else {
-                          this.$Message.error({
-                            content: data.data.errorMessage,
-                          });
-                        }
-                      })
-                      .catch(() => {
-                        this.tableLoading = false;
-                      });
+                  on: {
+                    click: () => {
+                      this.edit(params.row);
+                    },
                   },
-                },
-              }, [
+                }, '编辑'),
                 h('Button', {
                   props: {
                     type: 'error',
                     size: 'small',
                   },
+                  style: {
+                    marginLeft: '5px',
+                  },
+                  on: {
+                    click: () => {
+                      this.del(params.row);
+                    },
+                  },
                 }, '删除'),
-              ]),
-            ]);
+              ]);
+            }
           },
         },
       ],
-      tableData: [],
-      addModalShow: false,
-      addData: {
+      modalShow: false,
+      isModalAdd: true,
+      modalParams: {
         name: '',
-        parent: '',
-        sort: 1,
-        isIndexTop: false,
+        desc: '',
+        resources: '',
       },
-      editModalShow: false,
-      editData: {
-        parent: '',
-      },
-      // 验证查看表单
       ruleValidate: {
         name: [
-          { required: true, message: '名称 不能为空' },
-          { max: 12, min: 2, message: '名称 长度为 2-12' },
+          { required: true, message: '请输入 角色名' },
+          { min: 3, max: 15, message: '角色名 长度为 3 - 15' },
+          {
+            validator: (rule, value, cb) => {
+              if (value.indexOf(' ') === -1) {
+                cb();
+              } else {
+                return cb(new Error('角色名 不允许有空格'));
+              }
+            },
+          },
+        ],
+        desc: [
+          { max: 18, message: '描述 最长为 18' },
+        ],
+        resources: [
+          { required: true, message: '请选择权限' },
         ],
       },
     };
   },
-  computed: {},
+  computed: {
+    modalTitle() {
+      return this.isModalAdd ? '新增' : '编辑';
+    },
+  },
   methods: {
-    // 获取信息
-    listData(page) {
-      this.tableLoading = true;
-      if (typeof page === 'number') {
-        this.searchParams.pageIndex = page;
-      } else if (page === 'search') {
-        this.searchParams = JSON.parse(JSON.stringify(this.searchFormData));
+    // 搜索
+    getDataList(method) {
+      if (method === 'search') {
+        this.searchParams = JSON.parse(JSON.stringify(this.search));
       }
-
-      _back_api.get('/categories', { params: this.searchParams })
-        .then(data => {
-          this.tableLoading = false;
-          if (data.data.status === 'SUCCEED') {
-            this.tableData = data.data.datas;
-            this.totalCount = data.data.totalCount;
-          }
-        })
-        .catch(() => {
-          this.tableLoading = false;
-        });
+      if (typeof method === 'number') {
+        this.searchParams.pageIndex = method;
+      }
+      /* _api_dashboard_service.get('/roles', { params: this.searchParams }).then(res => {
+        const data = res.data;
+        if (data.status === 'SUCCEED') {
+          this.dataList = data.datas;
+          this.searchParams.pageIndex = data.pageIndex;
+          this.dataListTotalCount = data.totalCount;
+        }
+      }); */
     },
-    searchParent() {
-      _back_api.get('/categories', { params: { pageAll: true } })
-        .then(data => {
-          const Data = data.data.datas;
-          const arr = [];
-          Data.forEach(item => {
-            if (!item.parent) {
-              arr.push(item);
-            }
-          });
-          this.parentLevel = arr;
-        });
+    // 新增
+    add() {
+      this.isModalAdd = true;
+      this.$refs.formVali.resetFields();
+      this.modalParams = this.$options.data().modalParams;
+      this.modalShow = true;
     },
-    showAddModal() {
-      this.$refs.addFormValidate.resetFields();
-      this.addModalShow = true;
-    },
-    closeAddModal() {
-      this.$refs.editFormValidate.resetFields();
-      this.addData = {
-        name: '',
-        parent: '',
-        sort: 1,
-        isIndexTop: false,
-      };
-      this.addModalShow = false;
-    },
-    addClass() {
-      this.$refs.addFormValidate.validate(valid => {
+    // 新增确认
+    addConfirm() {
+      this.$refs.formVali.validate(valid => {
         if (valid) {
-          this.buttonLoading = true;
-          _back_api.post('/categories', this.addData)
-            .then(data => {
-              this.buttonLoading = false;
-              if (data.data.status === 'SUCCEED') {
-                this.searchParent();
-                this.listData('search');
-                this.$Message.success({
-                  content: '操作成功',
-                });
-                this.addModalShow = false;
-              } else {
-                this.$Message.error({
-                  content: data.data.errorMessage,
-                });
-              }
-            })
-            .catch(() => {
-              this.buttonLoading = false;
-            });
+          /* _api_dashboard_service.post('/roles', this.modalParams).then(res => {
+            const data = res.data;
+            if (data.status === 'SUCCEED') {
+              this.modalShow = false;
+              this.getDataList('search');
+              this.$Notice.success({
+                title: '新增成功',
+              });
+            } else {
+              this.$Notice.warning({
+                title: '新增失败，' + data.errorMessage,
+              });
+            }
+          }); */
         }
       });
     },
-    closeEditModal() {
-      this.editModalShow = false;
+    // 编辑
+    edit(row) {
+      this.isModalAdd = false;
+      this.$refs.formVali.resetFields();
+      this.modalParams = {
+        _id: row._id,
+        name: row.name,
+        desc: row.desc,
+      };
+      this.modalShow = true;
     },
-    editClass() {
-      this.$refs.editFormValidate.validate(valid => {
+    // 编辑确认
+    editConfirm() {
+      this.selectTreeNode();
+      this.$refs.formVali.validate(valid => {
         if (valid) {
-          this.buttonLoading = true;
-          _back_api.put('/categories', this.editData)
-            .then(data => {
-              this.buttonLoading = false;
-              if (data.data.status === 'SUCCEED') {
-                this.searchParent();
-                this.listData('search');
-                this.$Message.success({
-                  content: '操作成功',
-                });
-                this.editModalShow = false;
-              } else {
-                this.$Message.error({
-                  content: data.data.errorMessage,
-                });
-              }
-            })
-            .catch(() => {
-              this.buttonLoading = false;
-            });
+          /* _api_dashboard_service.put('/roles', this.modalParams).then(res => {
+            const data = res.data;
+            if (data.status === 'SUCCEED') {
+              this.modalShow = false;
+              this.getDataList('search');
+              this.$Notice.success({
+                title: '编辑成功',
+              });
+            } else {
+              this.$Notice.warning({
+                title: '编辑失败，' + data.errorMessage,
+              });
+            }
+          }); */
         }
+      });
+    },
+    //  删除
+    del(row) {
+      const _id = row._id;
+      console.log(_id);
+      this.$Modal.confirm({
+        title: '提示',
+        content: '确定删除吗?',
+        onOk: () => {
+          /* _api_dashboard_service.delete('/roles', { params: { _id } }).then(res => {
+            const data = res.data;
+            if (data.status === 'SUCCEED') {
+              this.getDataList('search');
+              this.$Notice.success({
+                title: '删除成功',
+              });
+            } else {
+              this.$Notice.warning({
+                title: '删除失败，' + data.errorMessage,
+              });
+            }
+          }); */
+        },
       });
     },
   },
-  async created() {
-    this.searchParent();
-    this.listData('search');
+  created() {
+    this.getDataList('search');
   },
 };
+
 </script>
