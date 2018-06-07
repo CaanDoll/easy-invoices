@@ -5,10 +5,14 @@
                 <Input v-model="search.name" style="width: 120px"></Input>
             </FormItem>
             <FormItem label="进价">
-                <InputNumber v-model="search.bidMin" :precision="2"></InputNumber>-<InputNumber v-model="search.bidMax" :precision="2"></InputNumber>
+                <InputNumber v-model="search.bidMin" :min="0"></InputNumber>
+                -
+                <InputNumber v-model="search.bidMax"></InputNumber>
             </FormItem>
             <FormItem label="售价">
-                <InputNumber v-model="search.priceMin" :precision="2"></InputNumber>-<InputNumber v-model="search.priceMax" :precision="2"></InputNumber>
+                <InputNumber v-model="search.priceMin" :min="0"></InputNumber>
+                -
+                <InputNumber v-model="search.priceMax"></InputNumber>
             </FormItem>
             <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
             <Button type="primary" icon="plus-round" @click="add"></Button>
@@ -179,6 +183,9 @@ export default {
       if (typeof method === 'number') {
         this.searchParams.pageIndex = method;
       }
+      const goods = this.$db.addCollection('goods');
+      goods.insert({ name: 'Sleipnir', legs: 8 });
+      console.log(goods.find({ name: 'Sleipnir' }));
       /* _api_dashboard_service.get('/roles', { params: this.searchParams }).then(res => {
         const data = res.data;
         if (data.status === 'SUCCEED') {
