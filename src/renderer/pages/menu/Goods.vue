@@ -183,9 +183,8 @@ export default {
       if (typeof method === 'number') {
         this.searchParams.pageIndex = method;
       }
-      const goods = this.$db.addCollection('goods');
-      goods.insert({ name: 'Sleipnir', legs: 8 });
-      console.log(goods.find({ name: 'Sleipnir' }));
+      const a = this.$db.goods.find();
+      console.log(a);
       /* _api_dashboard_service.get('/roles', { params: this.searchParams }).then(res => {
         const data = res.data;
         if (data.status === 'SUCCEED') {
@@ -204,24 +203,12 @@ export default {
     },
     // 新增确认
     addConfirm() {
+      this.$db.goods.insert({ test: 1 });
+      /*
       this.$refs.formVali.validate(valid => {
         if (valid) {
-          /* _api_dashboard_service.post('/roles', this.modalParams).then(res => {
-            const data = res.data;
-            if (data.status === 'SUCCEED') {
-              this.modalShow = false;
-              this.getDataList('search');
-              this.$Notice.success({
-                title: '新增成功',
-              });
-            } else {
-              this.$Notice.warning({
-                title: '新增失败，' + data.errorMessage,
-              });
-            }
-          }); */
         }
-      });
+      }); */
     },
     // 编辑
     edit(row) {

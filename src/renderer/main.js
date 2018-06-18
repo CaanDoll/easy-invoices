@@ -1,7 +1,9 @@
 import Vue from 'vue';
 import VueRouter from 'vue-router';
 import App from './App.vue';
+import db from './utils/service';
 
+Vue.prototype.$db = db;
 Vue.use(VueRouter);
 
 import iView from 'iview';
@@ -21,9 +23,6 @@ const router = new VueRouter({
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'));
 Vue.config.productionTip = false;
-import Loki from 'lokijs';
-import path from 'path';
-Vue.prototype.$db = new Loki(path.resolve(__dirname, '../../db.json'));
 
 /* eslint-disable no-new */
 new Vue({

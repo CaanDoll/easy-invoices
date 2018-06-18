@@ -1,5 +1,5 @@
 import Home from './pages/Home';
-import menus from './utils/menu';
+import menus from './menu';
 
 const childrenRoutes = [];
 

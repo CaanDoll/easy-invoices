@@ -1,4 +1,4 @@
-import Goods from '../pages/menu/Goods.vue';
+import Goods from './pages/menu/Goods.vue';
 
 const menu = [
   {

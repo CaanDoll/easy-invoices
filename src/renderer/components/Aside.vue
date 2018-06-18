@@ -25,7 +25,7 @@
 </template>
 
 <script>
-import MENU from '../utils/menu';
+import MENU from '../menu';
 
 export default {
   data() {
