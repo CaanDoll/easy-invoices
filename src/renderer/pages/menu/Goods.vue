@@ -24,16 +24,21 @@
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
                       :label-width="120">
-                    <FormItem label="角色名" prop="name">
-                        <Input v-model="modalParams.name" placeholder="必填，长度 3 - 15"
+                    <FormItem label="品名" prop="name">
+                        <Input v-model="modalParams.name" placeholder="必填，长度 100 以内"
                                style="width: 250px"></Input>
                     </FormItem>
-                    <FormItem label="描述" prop="desc">
-                        <Input v-model="modalParams.desc" placeholder="非必填，长度 0 - 18"
+                    <FormItem label="进价" prop="buyPrice">
+                        <Input v-model="modalParams.desc" placeholder="非必填，大小 0.01 - 100000000.00"
                                style="width: 250px"></Input>
                     </FormItem>
-                    <FormItem label="权限" prop="resources">
-                        <div id="roleQueryTree" class="ztree"></div>
+                    <FormItem label="售价" prop="sellPrice">
+                        <Input v-model.num="modalParams.desc" placeholder="非必填，大小 0.01 - 100000000.00"
+                               style="width: 250px"></Input>
+                    </FormItem>
+                    <FormItem label="备注" prop="remark">
+                        <Input v-model="modalParams.desc" placeholder="非必填，长度 200 以内"
+                               style="width: 250px"></Input>
                     </FormItem>
                 </Form>
             </div>
@@ -49,30 +54,19 @@
         </Modal>
     </div>
 </template>
-<style lang="less">
-</style>
 <script>
 
 export default {
   data() {
     return {
       // ----选值
-      statusList: [
-        {
-          value: 'true',
-          name: '启用',
-        }, {
-          value: 'false',
-          name: '禁用',
-        },
-      ],
       // ----常用
       search: {
         name: '',
-        bidMax: null,
-        bidMin: null,
-        priceMax: null,
-        priceMin: null,
+        buyPriceMax: null,
+        buyPriceMin: null,
+        sellPriceMax: null,
+        sellPriceMin: null,
         pageIndex: 1,
         pageSize: 10,
       },
@@ -86,19 +80,19 @@ export default {
         },
         {
           title: '进价',
-          key: 'desc',
+          key: 'buyPrice',
         },
         {
-          title: '零售价',
-          key: 'desc',
+          title: '售价',
+          key: 'sellPrice',
         },
         {
           title: '数量',
-          key: 'desc',
+          key: 'total',
         },
         {
           title: '备注',
-          key: 'desc',
+          key: 'remark',
         },
         {
           title: '操作',
@@ -143,28 +137,24 @@ export default {
       isModalAdd: true,
       modalParams: {
         name: '',
-        desc: '',
-        resources: '',
+        buyPrice: '',
+        sellPrice: '',
+        total: '',
+        remark: '',
       },
       ruleValidate: {
         name: [
-          { required: true, message: '请输入 角色名' },
-          { min: 3, max: 15, message: '角色名 长度为 3 - 15' },
-          {
-            validator: (rule, value, cb) => {
-              if (value.indexOf(' ') === -1) {
-                cb();
-              } else {
-                return cb(new Error('角色名 不允许有空格'));
-              }
-            },
-          },
+          { required: true, message: '请输入 品名' },
+          { max: 100, message: '品名 长度 100 以内' },
         ],
-        desc: [
-          { max: 18, message: '描述 最长为 18' },
+        buyPrice: [
+          { pattern: /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/, message: '进价 只能为 小数位不超过2位的正整数' },
         ],
-        resources: [
-          { required: true, message: '请选择权限' },
+        sellPrice: [
+          { pattern: /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/, message: '进价 只能为 小数位不超过2位的正整数' },
+        ],
+        remark: [
+          { max: 200, message: '备注 长度 200 以内' },
         ],
       },
     };
@@ -274,3 +264,5 @@ export default {
 };
 
 </script>
+<style lang="less">
+</style>

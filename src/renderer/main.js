@@ -2,18 +2,17 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 import App from './App.vue';
 import db from './utils/service';
-
-Vue.prototype.$db = db;
-Vue.use(VueRouter);
-
 import iView from 'iview';
 import 'iview/dist/styles/iview.css';
-
 import routes from './route';
 import store from './store';
+import filters from './utils/filter';
+
+Vue.prototype.$db = db;
+
+Vue.use(VueRouter);
 
 Vue.use(iView);
-import filters from './utils/filter';
 
 Object.keys(filters).forEach(k => Vue.filter(k, filters[ k ]));
 
