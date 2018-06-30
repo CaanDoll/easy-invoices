@@ -16,14 +16,19 @@ exports.DateFilter = value => {
 
 };
 
-exports.statusFilter = val => {
-  const map = {
-    PENDING: '待受理',
-    ACCEPTING: '受理中',
-    COMPLETED: '已完成',
-  };
-  if (val === null) {
-    return map;
-  }
-  return map[val] ? map[val] : '';
+exports.patternCleanSpecial = val => {
+  const newStr = val
+    .replace(/\+/g, '\\+')
+    .replace(/\*/g, '\\*')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)')
+    .replace(/\[/g, '\\[')
+    .replace(/\]/g, '\\]')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\$/g, '\\$')
+    .replace(/\?/g, '\\?')
+    .replace(/\|/g, '\\|')
+    .replace(/\^/g, '\\^');
+  return new RegExp(newStr);
 };

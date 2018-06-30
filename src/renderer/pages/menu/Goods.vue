@@ -5,21 +5,21 @@
                 <Input v-model="search.name" style="width: 120px"></Input>
             </FormItem>
             <FormItem label="进价">
-                <InputNumber v-model="search.bidMin" :min="0"></InputNumber>
+                <InputNumber v-model="search.buyPriceMin" :min="0"></InputNumber>
                 -
-                <InputNumber v-model="search.bidMax"></InputNumber>
+                <InputNumber v-model="search.buyPriceMax"></InputNumber>
             </FormItem>
             <FormItem label="售价">
-                <InputNumber v-model="search.priceMin" :min="0"></InputNumber>
+                <InputNumber v-model="search.sellPriceMin" :min="0"></InputNumber>
                 -
-                <InputNumber v-model="search.priceMax"></InputNumber>
+                <InputNumber v-model="search.sellPriceMax"></InputNumber>
             </FormItem>
             <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
             <Button type="primary" icon="plus-round" @click="add"></Button>
         </Form>
         <Table border :columns="dataList_table_column" :data="dataList"></Table>
-        <Page :total="dataListTotalCount" :current="searchParams.pageIndex"
-              :page-size="searchParams.pageSize" @on-change="getDataList" show-total></Page>
+        <Page :total="dataListTotalCount" :current="search.pageIndex"
+              :page-size="search.pageSize" @on-change="getDataList" show-total show-elevator></Page>
         <Modal v-model="modalShow" :mask-closable="false" :title="modalTitle" @on-cancel="modalShow = false">
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
@@ -29,15 +29,15 @@
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="进价" prop="buyPrice">
-                        <Input v-model="modalParams.desc" placeholder="非必填，大小 0.01 - 100000000.00"
+                        <Input v-model="modalParams.buyPrice" placeholder="非必填，大小 0.01 - 100000000.00"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="售价" prop="sellPrice">
-                        <Input v-model.num="modalParams.desc" placeholder="非必填，大小 0.01 - 100000000.00"
+                        <Input v-model.number="modalParams.sellPrice" placeholder="非必填，大小 0.01 - 100000000.00"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="备注" prop="remark">
-                        <Input v-model="modalParams.desc" placeholder="非必填，长度 200 以内"
+                        <Input v-model="modalParams.remark" placeholder="非必填，长度 200 以内"
                                style="width: 250px"></Input>
                     </FormItem>
                 </Form>
@@ -55,6 +55,7 @@
     </div>
 </template>
 <script>
+import filter from '../../utils/filter';
 
 export default {
   data() {
@@ -97,49 +98,57 @@ export default {
         {
           title: '操作',
           key: 'action',
-          width: 200,
-          fixed: 'right',
+          width: 130,
           align: 'center',
           render: (h, params) => {
-            if (!params.row.default) {
-              return h('div', [
-                h('Button', {
-                  props: {
-                    type: 'primary',
-                    size: 'small',
+            return h('div', [
+              h('Button', {
+                props: {
+                  type: 'primary',
+                  size: 'small',
+                },
+                on: {
+                  click: () => {
+                    this.edit(params.row);
                   },
-                  on: {
-                    click: () => {
-                      this.edit(params.row);
-                    },
+                },
+              }, '编辑'),
+              h('Poptip', {
+                props: {
+                  type: 'error',
+                  confirm: true,
+                  title: '确认删除该物品？',
+                  placement: 'top-end',
+                  transfer: true,
+                },
+                on: {
+                  'on-ok': () => {
+                    this.del(params.row);
                   },
-                }, '编辑'),
+                },
+              }, [
                 h('Button', {
                   props: {
                     type: 'error',
                     size: 'small',
                   },
                   style: {
-                    marginLeft: '5px',
-                  },
-                  on: {
-                    click: () => {
-                      this.del(params.row);
-                    },
+                    'margin-left': '5px',
                   },
                 }, '删除'),
-              ]);
-            }
+              ]),
+            ]);
           },
         },
       ],
       modalShow: false,
       isModalAdd: true,
+      modal$loki: null,
       modalParams: {
         name: '',
         buyPrice: '',
         sellPrice: '',
-        total: '',
+        total: 0,
         remark: '',
       },
       ruleValidate: {
@@ -168,21 +177,13 @@ export default {
     // 搜索
     getDataList(method) {
       if (method === 'search') {
-        this.searchParams = JSON.parse(JSON.stringify(this.search));
+        this.searchParams.sellPrice = { $gt: this.search.sellPriceMin, $lt: this.search.sellPriceMax };
+        this.searchParams.buyPrice = { $gt: this.search.buyPriceMin, $lt: this.search.buyPriceMax };
+        this.searchParams.name = { $regex: filter.patternCleanSpecial(this.search.name), $options: 'ims' };
       }
       if (typeof method === 'number') {
         this.searchParams.pageIndex = method;
       }
-      const a = this.$db.goods.find();
-      console.log(a);
-      /* _api_dashboard_service.get('/roles', { params: this.searchParams }).then(res => {
-        const data = res.data;
-        if (data.status === 'SUCCEED') {
-          this.dataList = data.datas;
-          this.searchParams.pageIndex = data.pageIndex;
-          this.dataListTotalCount = data.totalCount;
-        }
-      }); */
     },
     // 新增
     add() {
@@ -193,69 +194,50 @@ export default {
     },
     // 新增确认
     addConfirm() {
-      this.$db.goods.insert({ test: 1 });
-      /*
       this.$refs.formVali.validate(valid => {
         if (valid) {
+          // const modalParams = JSON.parse(JSON.stringify(this.modalParams));
+          this.modalShow = false;
+          this.$Notice.success({
+            title: '新增成功',
+          });
+          this.getDataList();
         }
-      }); */
+      });
     },
     // 编辑
     edit(row) {
       this.isModalAdd = false;
       this.$refs.formVali.resetFields();
+      this.modal$loki = row.$loki;
       this.modalParams = {
-        _id: row._id,
         name: row.name,
-        desc: row.desc,
+        buyPrice: row.buyPrice,
+        sellPrice: row.sellPrice,
+        total: row.total,
+        remark: row.remark,
       };
       this.modalShow = true;
     },
     // 编辑确认
     editConfirm() {
-      this.selectTreeNode();
       this.$refs.formVali.validate(valid => {
         if (valid) {
-          /* _api_dashboard_service.put('/roles', this.modalParams).then(res => {
-            const data = res.data;
-            if (data.status === 'SUCCEED') {
-              this.modalShow = false;
-              this.getDataList('search');
-              this.$Notice.success({
-                title: '编辑成功',
-              });
-            } else {
-              this.$Notice.warning({
-                title: '编辑失败，' + data.errorMessage,
-              });
-            }
-          }); */
+          // const modalParams = JSON.parse(JSON.stringify(this.modalParams));
+          this.modalShow = false;
+          this.$Notice.success({
+            title: '编辑成功',
+          });
+          this.getDataList();
         }
       });
     },
     //  删除
-    del(row) {
-      const _id = row._id;
-      console.log(_id);
-      this.$Modal.confirm({
-        title: '提示',
-        content: '确定删除吗?',
-        onOk: () => {
-          /* _api_dashboard_service.delete('/roles', { params: { _id } }).then(res => {
-            const data = res.data;
-            if (data.status === 'SUCCEED') {
-              this.getDataList('search');
-              this.$Notice.success({
-                title: '删除成功',
-              });
-            } else {
-              this.$Notice.warning({
-                title: '删除失败，' + data.errorMessage,
-              });
-            }
-          }); */
-        },
+    del() {
+      this.$Notice.success({
+        title: '删除成功',
       });
+      this.getDataList();
     },
   },
   created() {

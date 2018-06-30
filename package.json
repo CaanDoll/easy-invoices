@@ -16,7 +16,8 @@
     "pack": "npm run pack:main && npm run pack:renderer",
     "pack:main": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.main.config.js",
     "pack:renderer": "cross-env NODE_ENV=production webpack --progress --colors --config .electron-vue/webpack.renderer.config.js",
-    "postinstall": "npm run lint:fix"
+    "postinstall": "install-app-deps",
+    "rebuild": "electron-rebuild -f -w sqlite3"
   },
   "build": {
     "productName": "my-project",
@@ -54,6 +55,7 @@
   },
   "dependencies": {
     "lokijs": "^1.5.5",
+    "sqlite3": "^4.0.0",
     "vue-electron": "^1.0.6"
   },
   "devDependencies": {
@@ -73,7 +75,7 @@
     "css-loader": "^0.28.4",
     "del": "^3.0.0",
     "devtron": "^1.4.0",
-    "electron": "^2.0.2",
+    "electron": "^1.8.7",
     "electron-builder": "^19.19.1",
     "electron-debug": "^1.4.0",
     "electron-devtools-installer": "^2.2.0",
