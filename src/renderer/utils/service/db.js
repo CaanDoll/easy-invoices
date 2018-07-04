@@ -3,24 +3,24 @@ import sq3 from 'sqlite3';
 const sqlite3 = sq3.verbose();
 const db = new sqlite3.Database('./db.sqlite3');
 
-db.serialize(function() {
+db.serialize(() => {
   db.run('CREATE TABLE GOODS(' +
-    'id INT PRIMARY KEY,' +
-    'name VARCHAR,' +
-    'buy_price DOUBLE PRECISION,' +
-    'sell_price DOUBLE PRECISION,' +
-    'total INT,' +
-    'remark VARCHAR' +
+    'id INTEGER PRIMARY KEY AUTOINCREMENT,' +
+    'name TEXT NOT NULL,' +
+    'buy_price REAL NOT NULL,' +
+    'sell_price REAL NOT NULL,' +
+    'total INTEGER NOT NULL,' +
+    'remark TEXT NOT NULL' +
     ')');
 
-  db.run('CREATE TABLE GOODS_RECORD(' +
-    'id INT PRIMARY KEY,' +
-    'name VARCHAR,' +
-    'buy_price DOUBLE PRECISION,' +
-    'sell_price DOUBLE PRECISION,' +
-    'total INT,' +
-    'remark VARCHAR' +
-    ')');
+  /* db.run('CREATE TABLE GOODS_RECORD(' +
+    'id INTEGER PRIMARY KEY AUTOINCREMENT,' +
+    'name TEXT NOT NULL,' +
+    'buy_price REAL NOT NULL,' +
+    'sell_price REAL NOT NULL,' +
+    'total INTEGER NOT NULL,' +
+    'remark TEXT NOT NULL' +
+    ')'); */
 });
 
-db.close();
+export default db;

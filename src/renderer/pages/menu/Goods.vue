@@ -2,20 +2,20 @@
     <div>
         <Form :label-width="90" inline>
             <FormItem label="品名">
-                <Input v-model="search.name" style="width: 120px"></Input>
+                <Input v-model="search.name" style="width: 203px" clearable></Input>
             </FormItem>
-            <FormItem label="进价">
-                <InputNumber v-model="search.buyPriceMin" :min="0"></InputNumber>
-                -
-                <InputNumber v-model="search.buyPriceMax"></InputNumber>
+            <FormItem :label="item.label" v-for="(item,index) in searchInputNumberType" :key="index">
+                <InputNumber v-model="search[item.min]" :min="0"
+                             :max="search[item.max] ? search[item.max] :Number.MAX_VALUE"></InputNumber>
+                —
+                <InputNumber v-model="search[item.max]" :min="search[item.min] ? search[item.min] :0"></InputNumber>
+                <Button type="ghost" shape="circle" icon="close-round" size="small" title="清空该项输入"
+                        @click="clearInputNumber(item.max,item.min)"></Button>
             </FormItem>
-            <FormItem label="售价">
-                <InputNumber v-model="search.sellPriceMin" :min="0"></InputNumber>
-                -
-                <InputNumber v-model="search.sellPriceMax"></InputNumber>
+            <FormItem :label-width="10">
+                <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
+                <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add"></Button>
             </FormItem>
-            <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
-            <Button type="primary" icon="plus-round" @click="add"></Button>
         </Form>
         <Table border :columns="dataList_table_column" :data="dataList"></Table>
         <Page :total="dataListTotalCount" :current="search.pageIndex"
@@ -55,15 +55,34 @@
     </div>
 </template>
 <script>
-import filter from '../../utils/filter';
 
 export default {
   data() {
     return {
       // ----选值
+      // ----特殊枚举
+      searchInputNumberType: [
+        {
+          label: '数量',
+          max: 'totalMax',
+          min: 'totalMin',
+        },
+        {
+          label: '进价',
+          max: 'buyPriceMax',
+          min: 'buyPriceMin',
+        },
+        {
+          label: '售价',
+          max: 'sellPriceMax',
+          min: 'sellPriceMin',
+        },
+      ],
       // ----常用
       search: {
         name: '',
+        totalMax: null,
+        totalMin: null,
         buyPriceMax: null,
         buyPriceMin: null,
         sellPriceMax: null,
@@ -143,7 +162,6 @@ export default {
       ],
       modalShow: false,
       isModalAdd: true,
-      modal$loki: null,
       modalParams: {
         name: '',
         buyPrice: '',
@@ -174,16 +192,32 @@ export default {
     },
   },
   methods: {
+    // 清空该项输入
+    clearInputNumber(max, min) {
+      this.search[ max ] = null;
+      this.search[ min ] = null;
+    },
     // 搜索
     getDataList(method) {
       if (method === 'search') {
-        this.searchParams.sellPrice = { $gt: this.search.sellPriceMin, $lt: this.search.sellPriceMax };
-        this.searchParams.buyPrice = { $gt: this.search.buyPriceMin, $lt: this.search.buyPriceMax };
-        this.searchParams.name = { $regex: filter.patternCleanSpecial(this.search.name), $options: 'ims' };
+        this.searchParams = JSON.parse(JSON.stringify(this.search));
       }
       if (typeof method === 'number') {
         this.searchParams.pageIndex = method;
       }
+      const SQL = 'SELECT * from GOODS';
+      this.$logger(SQL);
+      this.$db.run(SQL, (err, data) => {
+        if (err) {
+          this.$logger(err);
+          this.$Notice.error({
+            title: '搜索失败',
+            desc: err,
+          });
+        } else {
+          console.log(data);
+        }
+      });
     },
     // 新增
     add() {
@@ -196,12 +230,26 @@ export default {
     addConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
-          // const modalParams = JSON.parse(JSON.stringify(this.modalParams));
-          this.modalShow = false;
-          this.$Notice.success({
-            title: '新增成功',
+          const modalParams = this.modalParams;
+          const SQL = `INSERT INTO GOODS (name,buy_price,sell_price,total,remark)
+          VALUES ('${modalParams.name}','${modalParams.buyPrice}','${modalParams.sellPrice}','${modalParams.total}','${modalParams.remark}')`;
+          this.$logger(SQL);
+          this.$db.run(SQL, err => {
+            if (err) {
+              this.$logger(err);
+              this.$Notice.error({
+                title: '新增失败',
+                desc: err,
+              });
+            } else {
+              this.modalShow = false;
+              this.$Notice.success({
+                title: '新增成功',
+              });
+              this.getDataList();
+            }
           });
-          this.getDataList();
+
         }
       });
     },
@@ -209,7 +257,6 @@ export default {
     edit(row) {
       this.isModalAdd = false;
       this.$refs.formVali.resetFields();
-      this.modal$loki = row.$loki;
       this.modalParams = {
         name: row.name,
         buyPrice: row.buyPrice,

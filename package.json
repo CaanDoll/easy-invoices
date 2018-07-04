@@ -54,7 +54,6 @@
     }
   },
   "dependencies": {
-    "lokijs": "^1.5.5",
     "sqlite3": "^4.0.0",
     "vue-electron": "^1.0.6"
   },

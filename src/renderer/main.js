@@ -6,7 +6,8 @@ import 'iview/dist/styles/iview.css';
 import routes from './route';
 import store from './store';
 import filters from './utils/filter';
-import './utils/service/db';
+import db from './utils/service/db';
+import logger from './utils/logger';
 
 Vue.use(VueRouter);
 
@@ -17,6 +18,10 @@ Object.keys(filters).forEach(k => Vue.filter(k, filters[ k ]));
 const router = new VueRouter({
   routes,
 });
+
+Vue.prototype.$db = db;
+
+Vue.prototype.$logger = logger;
 
 if (!process.env.IS_WEB) Vue.use(require('vue-electron'));
 Vue.config.productionTip = false;
