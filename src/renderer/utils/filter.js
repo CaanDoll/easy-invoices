@@ -1,4 +1,4 @@
-exports.DateFilter = value => {
+exports.dateFilter = value => {
   if (value) {
     const d = new Date(parseInt(value));
     const date = {
@@ -13,22 +13,4 @@ exports.DateFilter = value => {
     return t;
   }
   return '';
-
-};
-
-exports.patternCleanSpecial = val => {
-  const newStr = val
-    .replace(/\+/g, '\\+')
-    .replace(/\*/g, '\\*')
-    .replace(/\(/g, '\\(')
-    .replace(/\)/g, '\\)')
-    .replace(/\[/g, '\\[')
-    .replace(/\]/g, '\\]')
-    .replace(/\{/g, '\\{')
-    .replace(/\}/g, '\\}')
-    .replace(/\$/g, '\\$')
-    .replace(/\?/g, '\\?')
-    .replace(/\|/g, '\\|')
-    .replace(/\^/g, '\\^');
-  return new RegExp(newStr);
 };

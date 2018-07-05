@@ -18,26 +18,26 @@
             </FormItem>
         </Form>
         <Table border :columns="dataList_table_column" :data="dataList"></Table>
-        <Page :total="dataListTotalCount" :current="searchParams.pageIndex"
-              :page-size="searchParams.pageSize" @on-change="getDataList" show-total show-sizer show-elevator></Page>
+        <Page :total="dataListTotalCount" :current="search.pageIndex"
+              :page-size="search.pageSize" @on-change="getDataList" show-total show-elevator></Page>
         <Modal v-model="modalShow" :mask-closable="false" :title="modalTitle" @on-cancel="modalShow = false">
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
-                      :label-width="130">
+                      :label-width="120">
                     <FormItem label="品名" prop="name">
                         <Input v-model="modalParams.name" placeholder="必填，长度 100 以内"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="进价" prop="buy_price">
-                        <Input v-model.number="modalParams.buy_price" placeholder="非必填，小数位不超过2位的正整数"
+                        <Input v-model="modalParams.buy_price" placeholder="非必填，大小 0.01 - 100000000.00"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="售价" prop="sell_price">
-                        <Input v-model.number="modalParams.sell_price" placeholder="非必填，小数位不超过2位的正整数"
+                        <Input v-model.number="modalParams.sell_price" placeholder="非必填，大小 0.01 - 100000000.00"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="备注" prop="remark">
-                        <Input v-model="modalParams.remark" type="textarea" :rows="4" placeholder="非必填，长度 200 以内"
+                        <Input v-model="modalParams.remark" placeholder="非必填，长度 200 以内"
                                style="width: 250px"></Input>
                     </FormItem>
                 </Form>
@@ -55,7 +55,6 @@
     </div>
 </template>
 <script>
-import filter from '../../utils/filter';
 
 export default {
   data() {
@@ -98,93 +97,41 @@ export default {
         {
           title: '品名',
           key: 'name',
-          align: 'center',
-          minWidth: 200,
         },
         {
           title: '进价',
           key: 'buy_price',
-          align: 'center',
-          minWidth: 150,
         },
         {
           title: '售价',
           key: 'sell_price',
-          align: 'center',
-          minWidth: 150,
         },
         {
           title: '数量',
           key: 'total',
-          align: 'center',
-          minWidth: 150,
-        },
-        {
-          title: '创建时间',
-          key: 'create_time',
-          align: 'center',
-          minWidth: 150,
-          render: (h, params) => {
-            return h('span', filter.dateFilter(params.row.create_time));
-          },
-        },
-        {
-          title: '修改时间',
-          key: 'update_time',
-          align: 'center',
-          minWidth: 150,
-          render: (h, params) => {
-            return h('span', filter.dateFilter(params.row.update_time));
-          },
         },
         {
           title: '备注',
           key: 'remark',
-          align: 'center',
-          minWidth: 300,
-          render: (h, params) => {
-            const remark = params.row.remark;
-            if (remark) {
-              return h('Tooltip', {
-                class: {
-                  'table-tooltip': true,
-                },
-                props: {
-                  delay: 1,
-                },
-              }, [
-                h('div', remark),
-                h('div', {
-                  style: {
-                    'white-space': 'normal',
-                  },
-                  slot: 'content',
-                }, remark),
-              ]);
-            }
-
-          },
         },
         {
           title: '操作',
           key: 'action',
-          width: 100,
+          width: 130,
           align: 'center',
-          fixed: 'right',
           render: (h, params) => {
             return h('div', [
               h('Button', {
                 props: {
                   type: 'primary',
                   size: 'small',
-                  icon: 'edit',
                 },
                 on: {
                   click: () => {
                     this.edit(params.row);
                   },
                 },
-              }),
+              }, '编辑'),
               h('Poptip', {
                 props: {
                   type: 'error',
@@ -203,12 +150,11 @@ export default {
                   props: {
                     type: 'error',
                     size: 'small',
-                    icon: 'trash-b',
                   },
                   style: {
                     'margin-left': '5px',
                   },
-                }),
+                }, '删除'),
               ]),
             ]);
           },
@@ -242,7 +188,7 @@ export default {
   },
   computed: {
     modalTitle() {
-      return this.isModalAdd ? '创建' : '修改';
+      return this.isModalAdd ? '新增' : '编辑';
     },
   },
   methods: {
@@ -327,8 +273,8 @@ export default {
                   title: '品名已存在',
                 });
               } else {
-                const SQL = `INSERT INTO GOODS (name,buy_price,sell_price,total,remark,create_time,update_time)
-          VALUES ('${modalParams.name}','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.total}','${modalParams.remark}','${Date.now()}','')`;
+                const SQL = `INSERT INTO GOODS (name,buy_price,sell_price,total,remark)
+          VALUES ('${modalParams.name}','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.total}','${modalParams.remark}')`;
                 this.$logger(SQL);
                 this.$db.run(SQL, err => {
                   if (err) {
@@ -374,7 +320,6 @@ export default {
           ,buy_price=${modalParams.buy_price}
           ,sell_price=${modalParams.sell_price}
           ,remark='${modalParams.remark}'
-          ,update_time='${Date.now()}'
           WHERE id = ${modalParams.id}`;
           this.$logger(SQL);
           this.$db.run(SQL, err => {

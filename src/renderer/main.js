@@ -6,7 +6,7 @@ import 'iview/dist/styles/iview.css';
 import routes from './route';
 import store from './store';
 import filters from './utils/filter';
-import db from './utils/service/db';
+import db from './utils/db';
 import logger from './utils/logger';
 
 Vue.use(VueRouter);
