@@ -46,9 +46,9 @@
                 <Button @click="modalShow = false">
                     取消
                 </Button>
-                <Button type="primary" v-if="isModalAdd" @click="addConfirm">确认
+                <Button type="primary" v-if="!modalParams.id" @click="addConfirm">确认
                 </Button>
-                <Button type="primary" v-if="!isModalAdd" @click="editConfirm">确认
+                <Button type="primary" v-if="modalParams.id" @click="editConfirm">确认
                 </Button>
             </div>
         </Modal>
@@ -150,7 +150,7 @@ export default {
                   'table-tooltip': true,
                 },
                 props: {
-                  delay: 1,
+                  delay: 800,
                 },
               }, [
                 h('div', remark),
@@ -166,7 +166,7 @@ export default {
           },
         },
         {
-          title: '操作',
+          title: ' ',
           key: 'action',
           width: 100,
           align: 'center',
@@ -189,9 +189,10 @@ export default {
                 props: {
                   type: 'error',
                   confirm: true,
-                  title: '确认删除该物品？',
+                  title: '若删除，将一并删除该物品明细',
                   placement: 'top-end',
                   transfer: true,
+                  'ok-text': '删除',
                 },
                 on: {
                   'on-ok': () => {
@@ -215,7 +216,6 @@ export default {
         },
       ],
       modalShow: false,
-      isModalAdd: true,
       modalParams: {
         name: '',
         buy_price: '',
@@ -242,7 +242,7 @@ export default {
   },
   computed: {
     modalTitle() {
-      return this.isModalAdd ? '创建' : '修改';
+      return this.modalParams.id ? '修改' : '创建';
     },
   },
   methods: {
@@ -281,6 +281,7 @@ export default {
           });
         } else {
           if (!res.length && searchParams.pageIndex !== 1) {
+            // 该页没数据，又不是第一页，就往上一页翻
             this.getDataList(searchParams.pageIndex - 1);
           } else {
             this.dataList = res;
@@ -302,7 +303,6 @@ export default {
     },
     // 新增
     add() {
-      this.isModalAdd = true;
       this.$refs.formVali.resetFields();
       this.modalParams = this.$options.data().modalParams;
       this.modalShow = true;
@@ -353,7 +353,6 @@ export default {
     },
     // 编辑
     edit(row) {
-      this.isModalAdd = false;
       this.$refs.formVali.resetFields();
       this.modalParams = {
         id: row.id,
@@ -371,8 +370,8 @@ export default {
           const modalParams = this.modalParams;
           const SQL = `UPDATE GOODS SET
           name='${modalParams.name}'
-          ,buy_price=${modalParams.buy_price}
-          ,sell_price=${modalParams.sell_price}
+          ,buy_price='${modalParams.buy_price}'
+          ,sell_price='${modalParams.sell_price}'
           ,remark='${modalParams.remark}'
           ,update_time='${Date.now()}'
           WHERE id = ${modalParams.id}`;
@@ -397,21 +396,38 @@ export default {
     },
     //  删除
     del(row) {
-      const SQL = `DELETE FROM GOODS WHERE id = ${row.id}`;
-      this.$logger(SQL);
-      this.$db.run(SQL, err => {
-        if (err) {
-          this.$logger(err);
-          this.$Notice.error({
-            title: '删除失败',
-            desc: err,
-          });
-        } else {
-          this.$Notice.success({
-            title: '删除成功',
-          });
-          this.getDataList();
-        }
+      this.$db.serialize(() => {
+        this.$db.run('BEGIN');
+        // 删除所有明细
+        const deleteDetailSQL = `DELETE FROM GOODS_DETAIL_LIST WHERE goods_id = ${row.id}`;
+        this.$logger(deleteDetailSQL);
+        this.$db.run(deleteDetailSQL, err => {
+          if (err) {
+            this.$logger(err);
+            this.$db.run('ROLLBACK');
+            this.$Notice.error({
+              title: '删除失败',
+              desc: err,
+            });
+          }
+        });
+        const deleteSQL = `DELETE FROM GOODS WHERE id = ${row.id}`;
+        this.$logger(deleteSQL);
+        this.$db.run(deleteSQL, err => {
+          if (err) {
+            this.$logger(err);
+            this.$db.run('ROLLBACK');
+            this.$Notice.error({
+              title: '删除失败',
+              desc: err,
+            });
+          }
+        });
+        this.$db.run('COMMIT');
+        this.$Notice.success({
+          title: '删除成功',
+        });
+        this.getDataList();
       });
     },
   },

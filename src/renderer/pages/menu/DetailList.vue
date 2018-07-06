@@ -2,15 +2,15 @@
     <div>
         <Form :label-width="90" inline>
             <FormItem label="品名">
-                <Input v-model="search.name" style="width: 203px" clearable></Input>
+                <Select v-model="search.goods_id" style="width:200px;" placeholder="输入关键字进行快捷选择" clearable
+                        filterable>
+                    <Option v-for="(item,index) in goodsList" :value="item.id" :key="index">{{item.name}}
+                    </Option>
+                </Select>
             </FormItem>
-            <FormItem :label="item.label" v-for="(item,index) in searchInputNumberType" :key="index">
-                <InputNumber v-model="search[item.min]" :min="0"
-                             :max="search[item.max] ? search[item.max] :Number.MAX_VALUE"></InputNumber>
-                —
-                <InputNumber v-model="search[item.max]" :min="search[item.min] ? search[item.min] :0"></InputNumber>
-                <Button type="ghost" shape="circle" icon="close-round" size="small" title="清空该项输入"
-                        @click="clearInputNumber(item.max,item.min)"></Button>
+            <FormItem label="操作时间">
+                <DatePicker :options="datePickerOption" type="daterange"
+                            style="width: 200px" v-model="search.dateRange" split-panels :editable="false"></DatePicker>
             </FormItem>
             <FormItem :label-width="10">
                 <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
@@ -24,20 +24,23 @@
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
                       :label-width="120">
-                    <FormItem label="品名" prop="name">
-                        <Input v-model="modalParams.name" placeholder="必填，长度 100 以内"
-                               style="width: 250px"></Input>
+                    <FormItem label="品名" prop="goods_id">
+                        <Select v-model="modalParams.goods_id" style="width:200px;" placeholder="必选，输入关键字进行快捷选择"
+                                filterable @on-change="modalSelectGoods">
+                            <Option v-for="(item,index) in goodsList" :value="item.id" :key="index">{{item.name}}
+                            </Option>
+                        </Select>
                     </FormItem>
-                    <FormItem label="进价" prop="buy_price">
-                        <Input v-model="modalParams.buy_price" placeholder="非必填，大小 0.01 - 100000000.00"
-                               style="width: 250px"></Input>
-                    </FormItem>
-                    <FormItem label="售价" prop="sell_price">
-                        <Input v-model.number="modalParams.sell_price" placeholder="非必填，大小 0.01 - 100000000.00"
-                               style="width: 250px"></Input>
+                    <FormItem label="操作" prop="type" inline>
+                        <Select v-model="modalParams.type" style="width:50px;" placeholder="">
+                            <Option value="+">+</Option>
+                            <Option value="-" v-if="this.modalParams.total">-</Option>
+                        </Select>
+                        <InputNumber v-model="modalParams.number" :min="1" :precision="0"
+                                     :max="modalParams.type === '-' ? this.modalParams.total : Number.MAX_VALUE"></InputNumber>
                     </FormItem>
                     <FormItem label="备注" prop="remark">
-                        <Input v-model="modalParams.remark" placeholder="非必填，长度 200 以内"
+                        <Input v-model="modalParams.remark" type="textarea" :rows="4" placeholder="非必填，长度 200 以内"
                                style="width: 250px"></Input>
                     </FormItem>
                 </Form>
@@ -46,47 +49,28 @@
                 <Button @click="modalShow = false">
                     取消
                 </Button>
-                <Button type="primary" v-if="isModalAdd" @click="addConfirm">确认
+                <Button type="primary" v-if="!modalParams.id" @click="addConfirm">确认
                 </Button>
-                <Button type="primary" v-if="!isModalAdd" @click="editConfirm">确认
+                <Button type="primary" v-if="modalParams.id" @click="editConfirm">确认
                 </Button>
             </div>
         </Modal>
     </div>
 </template>
 <script>
+import { datePickerOption } from '../../utils/option';
+import filter from '../../utils/filter';
 
 export default {
   data() {
     return {
+      datePickerOption,
       // ----选值
-      // ----特殊枚举
-      searchInputNumberType: [
-        {
-          label: '数量',
-          max: 'totalMax',
-          min: 'totalMin',
-        },
-        {
-          label: '进价',
-          max: 'buyPriceMax',
-          min: 'buyPriceMin',
-        },
-        {
-          label: '售价',
-          max: 'sellPriceMax',
-          min: 'sellPriceMin',
-        },
-      ],
+      goodsList: [],
       // ----常用
       search: {
-        name: '',
-        totalMax: null,
-        totalMin: null,
-        buyPriceMax: null,
-        buyPriceMin: null,
-        sellPriceMax: null,
-        sellPriceMin: null,
+        goods_id: '',
+        dateRange: [ null, null ],
         pageIndex: 1,
         pageSize: 10,
       },
@@ -97,31 +81,64 @@ export default {
         {
           title: '品名',
           key: 'name',
+          align: 'center',
+          minWidth: 200,
         },
         {
-          title: '进价',
-          key: 'buy_price',
+          title: '操作',
+          key: 'number',
+          align: 'center',
+          minWidth: 150,
+          render: (h, params) => {
+            return h('span', params.row.type + ' ' + params.row.number);
+          },
         },
         {
-          title: '售价',
-          key: 'sell_price',
-        },
-        {
-          title: '数量',
-          key: 'total',
+          title: '操作时间',
+          key: 'create_time',
+          align: 'center',
+          minWidth: 150,
+          render: (h, params) => {
+            return h('span', filter.dateFilter(params.row.create_time));
+          },
         },
         {
           title: '备注',
           key: 'remark',
+          align: 'center',
+          minWidth: 300,
+          render: (h, params) => {
+            const remark = params.row.remark;
+            if (remark) {
+              return h('Tooltip', {
+                class: {
+                  'table-tooltip': true,
+                },
+                props: {
+                  delay: 800,
+                },
+              }, [
+                h('div', remark),
+                h('div', {
+                  style: {
+                    'white-space': 'normal',
+                  },
+                  slot: 'content',
+                }, remark),
+              ]);
+            }
+
+          },
         },
         {
-          title: '操作',
+          title: ' ',
           key: 'action',
-          width: 130,
+          width: 80,
           align: 'center',
+          fixed: 'right',
           render: (h, params) => {
             return h('div', [
-              h('Button', {
+              /* h('Button', {
                 props: {
                   type: 'primary',
                   size: 'small',
@@ -131,14 +148,15 @@ export default {
                     this.edit(params.row);
                   },
                 },
-              }, '编辑'),
+              }, '编辑'), */
               h('Poptip', {
                 props: {
                   type: 'error',
                   confirm: true,
-                  title: '确认删除该物品？',
+                  title: '若删除，该操作将回滚',
                   placement: 'top-end',
                   transfer: true,
+                  'ok-text': '删除',
                 },
                 on: {
                   'on-ok': () => {
@@ -150,35 +168,29 @@ export default {
                   props: {
                     type: 'error',
                     size: 'small',
+                    icon: 'trash-b',
                   },
                   style: {
                     'margin-left': '5px',
                   },
-                }, '删除'),
+                }),
               ]),
             ]);
           },
         },
       ],
       modalShow: false,
-      isModalAdd: true,
       modalParams: {
+        goods_id: '',
         name: '',
-        buy_price: '',
-        sell_price: '',
+        type: '+',
+        number: 1,
         total: 0,
         remark: '',
       },
       ruleValidate: {
-        name: [
-          { required: true, message: '请输入 品名' },
-          { max: 100, message: '品名 长度 100 以内' },
-        ],
-        buy_price: [
-          { pattern: /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/, message: '进价 只能为 小数位不超过2位的正整数' },
-        ],
-        sell_price: [
-          { pattern: /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/, message: '进价 只能为 小数位不超过2位的正整数' },
+        goods_id: [
+          { required: true, message: '请选择 品名' },
         ],
         remark: [
           { max: 200, message: '备注 长度 200 以内' },
@@ -188,14 +200,25 @@ export default {
   },
   computed: {
     modalTitle() {
-      return this.isModalAdd ? '新增' : '编辑';
+      return this.modalParams.id ? '修改' : '创建';
     },
   },
   methods: {
-    // 清空该项输入
-    clearInputNumber(max, min) {
-      this.search[ max ] = null;
-      this.search[ min ] = null;
+    // 初始化物品
+    initGoodsDataList() {
+      const rowSQL = 'SELECT * from GOODS';
+      this.$logger(rowSQL);
+      this.$db.all(rowSQL, (err, res) => {
+        if (err) {
+          this.$logger(err);
+          this.$Notice.error({
+            title: '搜索失败',
+            desc: err,
+          });
+        } else {
+          this.goodsList = res;
+        }
+      });
     },
     // 搜索
     getDataList(method) {
@@ -206,17 +229,16 @@ export default {
         this.searchParams.pageIndex = method;
       }
       const searchParams = this.searchParams;
-      let whereSQL = `WHERE name LIKE '%${searchParams.name}%' `;
-      searchParams.totalMin !== null ? whereSQL += `AND total >= ${searchParams.totalMin} ` : null;
-      searchParams.totalMax !== null ? whereSQL += `AND total <= ${searchParams.totalMax} ` : null;
-      searchParams.buyPriceMin !== null ? whereSQL += `AND buy_price >= ${searchParams.buyPriceMin} ` : null;
-      searchParams.buyPriceMax !== null ? whereSQL += `AND buy_price <= ${searchParams.buyPriceMax} ` : null;
-      searchParams.sellPriceMin !== null ? whereSQL += `AND sell_price >= ${searchParams.sellPriceMin} ` : null;
-      searchParams.sellPriceMax !== null ? whereSQL += `AND sell_price <= ${searchParams.sellPriceMax} ` : null;
+      let whereSQL = '';
+      searchParams.goods_id ? whereSQL += `goods_id = '${searchParams.goods_id}' ` : null;
+      searchParams.dateRange[ 0 ] ? whereSQL += `AND create_time >= ${new Date(searchParams.dateRange[ 0 ]).getTime()} ` : null;
+      searchParams.dateRange[ 1 ] ? whereSQL += `AND create_time <= ${new Date(searchParams.dateRange[ 1 ] + 24 * 60 * 60 * 1000 - 1).getTime()} ` : null;
       const pageSQL = `LIMIT ${searchParams.pageSize} OFFSET ${(searchParams.pageIndex - 1) * searchParams.pageSize} `;
-      const orderSQL = 'ORDER BY id DESC ';
-      const rowSQL = 'SELECT * from GOODS ' + whereSQL + orderSQL + pageSQL;
-      const countSQL = 'SELECT COUNT(id) AS totalCount from GOODS ' + whereSQL;
+      const orderSQL = 'ORDER BY GOODS_DETAIL_LIST.id DESC ';
+      const rowSQL = `SELECT
+      GOODS_DETAIL_LIST.id,GOODS_DETAIL_LIST.goods_id,GOODS_DETAIL_LIST.type,GOODS_DETAIL_LIST.number,GOODS_DETAIL_LIST.create_time,GOODS_DETAIL_LIST.remark,GOODS.name,GOODS.total
+      from GOODS_DETAIL_LIST LEFT OUTER JOIN GOODS ON GOODS_DETAIL_LIST.goods_id = GOODS.id ` + (whereSQL ? 'WHERE ' + whereSQL : '') + orderSQL + pageSQL;
+      const countSQL = 'SELECT COUNT(id) AS totalCount from GOODS_DETAIL_LIST ' + (whereSQL ? 'WHERE ' + whereSQL : '');
       this.$logger(rowSQL);
       this.$db.all(rowSQL, (err, res) => {
         if (err) {
@@ -248,119 +270,101 @@ export default {
     },
     // 新增
     add() {
-      this.isModalAdd = true;
       this.$refs.formVali.resetFields();
       this.modalParams = this.$options.data().modalParams;
       this.modalShow = true;
+    },
+    // 选择物品回调
+    modalSelectGoods(val) {
+      const SQL = `SELECT total from GOODS WHERE id = '${val}'`;
+      this.$logger(SQL);
+      this.$db.get(SQL, (err, res) => {
+        if (err) {
+          this.$logger(err);
+          this.$Notice.error({
+            title: '搜索失败',
+            desc: err,
+          });
+        } else {
+          this.modalParams.total = res.total;
+        }
+      });
     },
     // 新增确认
     addConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
           const modalParams = this.modalParams;
-          // 检测品名是否存在
-          const SQL = `SELECT COUNT(id) AS totalCount from GOODS WHERE name = '${modalParams.name}'`;
-          this.$db.get(SQL, (err, res) => {
-            if (err) {
-              this.$logger(err);
-              this.$Notice.error({
-                title: '搜索失败',
-                desc: err,
-              });
-            } else {
-              if (res.totalCount) {
-                this.$Notice.warning({
-                  title: '品名已存在',
-                });
-              } else {
-                const SQL = `INSERT INTO GOODS (name,buy_price,sell_price,total,remark)
-          VALUES ('${modalParams.name}','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.total}','${modalParams.remark}')`;
-                this.$logger(SQL);
-                this.$db.run(SQL, err => {
-                  if (err) {
-                    this.$logger(err);
-                    this.$Notice.error({
-                      title: '新增失败',
-                      desc: err,
-                    });
-                  } else {
-                    this.modalShow = false;
-                    this.$Notice.success({
-                      title: '新增成功',
-                    });
-                    this.getDataList(1);
-                  }
-                });
+          this.$db.serialize(() => {
+            this.$db.run('BEGIN');
+            // 往物品total中做运算
+            const computeSQL = `UPDATE GOODS SET total = ${modalParams.total + modalParams.type + modalParams.number} WHERE id = '${modalParams.goods_id}'`;
+            this.$logger(computeSQL);
+            this.$db.run(computeSQL, err => {
+              if (err) {
+                this.$logger(err);
+                this.$db.run('ROLLBACK');
               }
-            }
-          });
-        }
-      });
-    },
-    // 编辑
-    edit(row) {
-      this.isModalAdd = false;
-      this.$refs.formVali.resetFields();
-      this.modalParams = {
-        id: row.id,
-        name: row.name,
-        buy_price: row.buy_price,
-        sell_price: row.sell_price,
-        remark: row.remark,
-      };
-      this.modalShow = true;
-    },
-    // 编辑确认
-    editConfirm() {
-      this.$refs.formVali.validate(valid => {
-        if (valid) {
-          const modalParams = this.modalParams;
-          const SQL = `UPDATE GOODS SET
-          name='${modalParams.name}'
-          ,buy_price=${modalParams.buy_price}
-          ,sell_price=${modalParams.sell_price}
-          ,remark='${modalParams.remark}'
-          WHERE id = ${modalParams.id}`;
-          this.$logger(SQL);
-          this.$db.run(SQL, err => {
-            if (err) {
-              this.$logger(err);
-              this.$Notice.error({
-                title: '编辑失败',
-                desc: err,
-              });
-            } else {
-              this.modalShow = false;
-              this.$Notice.success({
-                title: '编辑成功',
-              });
-              this.getDataList();
-            }
+            });
+            // 往明细记录中增加记录
+            const insertSQL = `INSERT INTO GOODS_DETAIL_LIST (goods_id,type,number,remark,create_time)
+          VALUES ('${modalParams.goods_id}','${modalParams.type}','${modalParams.number}','${modalParams.remark}','${Date.now()}')`;
+            this.$logger(insertSQL);
+            this.$db.run(insertSQL, err => {
+              if (err) {
+                this.$logger(err);
+                this.$db.run('ROLLBACK');
+              }
+            });
+            this.$db.run('COMMIT');
+            this.modalShow = false;
+            this.$Notice.success({
+              title: '新增成功',
+            });
+            this.getDataList(1);
           });
         }
       });
     },
     //  删除
     del(row) {
-      const SQL = `DELETE FROM GOODS WHERE id = ${row.id}`;
-      this.$logger(SQL);
-      this.$db.run(SQL, err => {
-        if (err) {
-          this.$logger(err);
-          this.$Notice.error({
-            title: '删除失败',
-            desc: err,
-          });
-        } else {
-          this.$Notice.success({
-            title: '删除成功',
-          });
-          this.getDataList();
-        }
+      this.$db.serialize(() => {
+        this.$db.run('BEGIN');
+        // 回滚运算
+        const computeSQL = `UPDATE GOODS SET total = ${row.total + (row.type === '+' ? '-' : '+') + row.number} WHERE id = '${row.goods_id}'`;
+        this.$logger(computeSQL);
+        this.$db.run(computeSQL, err => {
+          if (err) {
+            this.$logger(err);
+            this.$db.run('ROLLBACK');
+            this.$Notice.error({
+              title: '删除失败',
+              desc: err,
+            });
+          }
+        });
+        const deleteSQL = `DELETE FROM GOODS_DETAIL_LIST WHERE id = ${row.id}`;
+        this.$logger(deleteSQL);
+        this.$db.run(deleteSQL, err => {
+          if (err) {
+            this.$logger(err);
+            this.$db.run('ROLLBACK');
+            this.$Notice.error({
+              title: '删除失败',
+              desc: err,
+            });
+          }
+        });
+        this.$db.run('COMMIT');
+        this.$Notice.success({
+          title: '删除成功',
+        });
+        this.getDataList();
       });
     },
   },
   created() {
+    this.initGoodsDataList();
     this.getDataList('search');
   },
 };
