@@ -2,12 +2,13 @@ import Vue from 'vue';
 import VueRouter from 'vue-router';
 import App from './App.vue';
 import iView from 'iview';
-import 'iview/dist/styles/iview.css';
 import routes from './route';
 import store from './store';
 import filters from './utils/filter';
 import db from './utils/db';
 import logger from './utils/logger';
+import 'iview/dist/styles/iview.css';
+import './assets/less/common.less';
 
 Vue.use(VueRouter);
 

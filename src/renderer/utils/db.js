@@ -1,8 +1,14 @@
+import fse from 'fs-extra';
+import path from 'path';
+import os from 'os';
 import sq3 from 'sqlite3';
 import logger from './logger';
 
+// 将数据存至系统用户目录，防止用户误删程序
+const dbPath = path.join(os.homedir(), 'easy-invoices/data.sqlite3');
+fse.ensureFileSync(dbPath);
 const sqlite3 = sq3.verbose();
-const db = new sqlite3.Database('./db.sqlite3');
+const db = new sqlite3.Database(dbPath);
 
 db.serialize(() => {
   /**

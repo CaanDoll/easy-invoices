@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 
 /**
  * Set `__static` path to static files in production
@@ -18,6 +18,7 @@ function createWindow() {
    * Initial window options
    */
   mainWindow = new BrowserWindow({
+    frame: false,
     height: 768,
     useContentSize: true,
     width: 1366,
@@ -43,6 +44,27 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+/**
+ * 边框
+ */
+// 窗口最小化
+ipcMain.on('min-window', () => {
+  mainWindow.minimize();
+});
+// 窗口最大化
+ipcMain.on('maxWindow', function() {
+  if (mainWindow.isMaximized()) {
+    mainWindow.restore();
+  } else {
+    mainWindow.maximize();
+  }
+});
+// 关闭
+ipcMain.on('closeWindow', function() {
+  mainWindow.close();
+});
+
 
 /**
  * Auto Updater

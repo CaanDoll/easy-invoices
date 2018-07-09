@@ -3,7 +3,15 @@
 
     .home-background {
         position: relative;
-        background-color: #ddd;
+        background-color: @bg-color;
+        .header {
+            position: absolute;
+            top: 0;
+            left: @view-left;
+            right: 0;
+            height: @view-top;
+            line-height: @view-top;
+        }
         .aside {
             position: absolute;
             top: 0;
@@ -13,7 +21,7 @@
         }
         .container {
             position: absolute;
-            top: 0;
+            top: @view-top;
             right: 0;
             left: @view-left;
             bottom: 0;
@@ -25,15 +33,17 @@
 
 <template>
     <div class="home-background theme-color1">
+        <Header class="header"></Header>
         <Aside class="aside"></Aside>
         <div class="container">
-            <router-view style="height: 100%;"></router-view>
+            <router-view class="clearfix"></router-view>
         </div>
     </div>
 </template>
 
 <script>
 import Aside from '../components/Aside.vue';
+import Header from '../components/Header.vue';
 
 export default {
   data() {
@@ -41,6 +51,7 @@ export default {
   },
   components: {
     Aside,
+    Header,
   },
 };
 </script>

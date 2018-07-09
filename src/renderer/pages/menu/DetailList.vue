@@ -13,13 +13,15 @@
                             style="width: 200px" v-model="search.dateRange" split-panels :editable="false"></DatePicker>
             </FormItem>
             <FormItem :label-width="10">
-                <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
-                <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add"></Button>
+                <Button type="primary" icon="ios-search" @click="getDataList('search')" title="搜索"></Button>
+                <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add" title="创建"></Button>
             </FormItem>
         </Form>
-        <Table border :columns="dataList_table_column" :data="dataList"></Table>
-        <Page :total="dataListTotalCount" :current="search.pageIndex"
-              :page-size="search.pageSize" @on-change="getDataList" show-total show-elevator></Page>
+        <Table border :columns="dataList_table_column" :data="dataList" :loading="tableLoading"></Table>
+        <Page :total="dataListTotalCount" :current="searchParams.pageIndex"
+              :page-size="searchParams.pageSize" @on-change="getDataList" @on-page-size-change="getDataListOnPageChange"
+              :page-size-opts="[10,20,30,40,50]" show-total
+              show-sizer show-elevator transfer></Page>
         <Modal v-model="modalShow" :mask-closable="false" :title="modalTitle" @on-cancel="modalShow = false">
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
@@ -49,9 +51,9 @@
                 <Button @click="modalShow = false">
                     取消
                 </Button>
-                <Button type="primary" v-if="!modalParams.id" @click="addConfirm">确认
+                <Button type="primary" v-if="!modalParams.id" @click="addConfirm" :loading="btnLoading">确认
                 </Button>
-                <Button type="primary" v-if="modalParams.id" @click="editConfirm">确认
+                <Button type="primary" v-if="modalParams.id" @click="editConfirm" :loading="btnLoading">确认
                 </Button>
             </div>
         </Modal>
@@ -64,12 +66,16 @@ import filter from '../../utils/filter';
 export default {
   data() {
     return {
+      // loading
+      btnLoading: false,
+      tableLoading: false,
+      // 日期控件配置
       datePickerOption,
       // ----选值
       goodsList: [],
       // ----常用
       search: {
-        goods_id: '',
+        goods_id: this.$route.query.goods_id || '',
         dateRange: [ null, null ],
         pageIndex: 1,
         pageSize: 10,
@@ -138,17 +144,6 @@ export default {
           fixed: 'right',
           render: (h, params) => {
             return h('div', [
-              /* h('Button', {
-                props: {
-                  type: 'primary',
-                  size: 'small',
-                },
-                on: {
-                  click: () => {
-                    this.edit(params.row);
-                  },
-                },
-              }, '编辑'), */
               h('Poptip', {
                 props: {
                   type: 'error',
@@ -169,6 +164,9 @@ export default {
                     type: 'error',
                     size: 'small',
                     icon: 'trash-b',
+                  },
+                  attrs: {
+                    title: '删除',
                   },
                   style: {
                     'margin-left': '5px',
@@ -222,6 +220,7 @@ export default {
     },
     // 搜索
     getDataList(method) {
+      this.tableLoading = true;
       if (method === 'search') {
         this.searchParams = JSON.parse(JSON.stringify(this.search));
       }
@@ -254,6 +253,7 @@ export default {
             this.dataList = res;
           }
         }
+        this.tableLoading = false;
       });
       this.$logger(countSQL);
       this.$db.get(countSQL, (err, res) => {
@@ -267,6 +267,11 @@ export default {
           this.dataListTotalCount = res.totalCount;
         }
       });
+    },
+    // pageSize改变
+    getDataListOnPageChange(pageSize) {
+      this.search.pageSize = pageSize;
+      this.getDataList('search');
     },
     // 新增
     add() {
@@ -294,6 +299,7 @@ export default {
     addConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
+          this.btnLoading = true;
           const modalParams = this.modalParams;
           this.$db.serialize(() => {
             this.$db.run('BEGIN');
@@ -322,6 +328,7 @@ export default {
               title: '新增成功',
             });
             this.getDataList(1);
+            this.btnLoading = false;
           });
         }
       });

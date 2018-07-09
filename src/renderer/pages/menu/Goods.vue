@@ -9,17 +9,20 @@
                              :max="search[item.max] ? search[item.max] :Number.MAX_VALUE"></InputNumber>
                 —
                 <InputNumber v-model="search[item.max]" :min="search[item.min] ? search[item.min] :0"></InputNumber>
-                <Button type="ghost" shape="circle" icon="close-round" size="small" title="清空该项输入"
+                <Button type="text" shape="circle" icon="close-round" size="small" title="清空该项输入"
                         @click="clearInputNumber(item.max,item.min)"></Button>
             </FormItem>
             <FormItem :label-width="10">
-                <Button type="primary" icon="ios-search" @click="getDataList('search')"></Button>
-                <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add"></Button>
+                <Button type="primary" icon="ios-search" @click="getDataList('search')" title="搜索"></Button>
+                <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add" title="创建"></Button>
+                <Button style="margin-left:5px;" type="primary" icon="ios-upload-outline" @click="add" title="导出"></Button>
             </FormItem>
         </Form>
-        <Table border :columns="dataList_table_column" :data="dataList"></Table>
+        <Table border :columns="dataList_table_column" :data="dataList" :loading="tableLoading"></Table>
         <Page :total="dataListTotalCount" :current="searchParams.pageIndex"
-              :page-size="searchParams.pageSize" @on-change="getDataList" show-total show-sizer show-elevator></Page>
+              :page-size="searchParams.pageSize" @on-change="getDataList" @on-page-size-change="getDataListOnPageChange"
+              :page-size-opts="[10,20,30,40,50]" show-total
+              show-sizer show-elevator transfer></Page>
         <Modal v-model="modalShow" :mask-closable="false" :title="modalTitle" @on-cancel="modalShow = false">
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
@@ -46,9 +49,9 @@
                 <Button @click="modalShow = false">
                     取消
                 </Button>
-                <Button type="primary" v-if="!modalParams.id" @click="addConfirm">确认
+                <Button type="primary" v-if="!modalParams.id" @click="addConfirm" :loading="btnLoading">确认
                 </Button>
-                <Button type="primary" v-if="modalParams.id" @click="editConfirm">确认
+                <Button type="primary" v-if="modalParams.id" @click="editConfirm" :loading="btnLoading">确认
                 </Button>
             </div>
         </Modal>
@@ -60,7 +63,9 @@ import filter from '../../utils/filter';
 export default {
   data() {
     return {
-      // ----选值
+      // loading
+      btnLoading: false,
+      tableLoading: false,
       // ----特殊枚举
       searchInputNumberType: [
         {
@@ -168,7 +173,7 @@ export default {
         {
           title: ' ',
           key: 'action',
-          width: 100,
+          width: 130,
           align: 'center',
           fixed: 'right',
           render: (h, params) => {
@@ -177,7 +182,28 @@ export default {
                 props: {
                   type: 'primary',
                   size: 'small',
+                  icon: 'ios-list-outline',
+                },
+                attrs: {
+                  title: '查看进出明细',
+                },
+                on: {
+                  click: () => {
+                    this.direct(params.row);
+                  },
+                },
+              }),
+              h('Button', {
+                props: {
+                  type: 'primary',
+                  size: 'small',
                   icon: 'edit',
+                },
+                attrs: {
+                  title: '修改',
+                },
+                style: {
+                  'margin-left': '5px',
                 },
                 on: {
                   click: () => {
@@ -205,6 +231,9 @@ export default {
                     type: 'error',
                     size: 'small',
                     icon: 'trash-b',
+                  },
+                  attrs: {
+                    title: '删除',
                   },
                   style: {
                     'margin-left': '5px',
@@ -253,6 +282,7 @@ export default {
     },
     // 搜索
     getDataList(method) {
+      this.tableLoading = true;
       if (method === 'search') {
         this.searchParams = JSON.parse(JSON.stringify(this.search));
       }
@@ -287,6 +317,7 @@ export default {
             this.dataList = res;
           }
         }
+        this.tableLoading = false;
       });
       this.$logger(countSQL);
       this.$db.get(countSQL, (err, res) => {
@@ -301,6 +332,11 @@ export default {
         }
       });
     },
+    // pageSize改变
+    getDataListOnPageChange(pageSize) {
+      this.search.pageSize = pageSize;
+      this.getDataList('search');
+    },
     // 新增
     add() {
       this.$refs.formVali.resetFields();
@@ -311,6 +347,7 @@ export default {
     addConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
+          this.btnLoading = true;
           const modalParams = this.modalParams;
           // 检测品名是否存在
           const SQL = `SELECT COUNT(id) AS totalCount from GOODS WHERE name = '${modalParams.name}'`;
@@ -344,11 +381,21 @@ export default {
                     });
                     this.getDataList(1);
                   }
+                  this.btnLoading = false;
                 });
               }
             }
           });
         }
+      });
+    },
+    // 跳转
+    direct(row) {
+      this.$router.push({
+        path: '/detailList',
+        query: {
+          goods_id: row.id,
+        },
       });
     },
     // 编辑
@@ -367,6 +414,7 @@ export default {
     editConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
+          this.btnLoading = true;
           const modalParams = this.modalParams;
           const SQL = `UPDATE GOODS SET
           name='${modalParams.name}'
@@ -390,6 +438,7 @@ export default {
               });
               this.getDataList();
             }
+            this.btnLoading = false;
           });
         }
       });
