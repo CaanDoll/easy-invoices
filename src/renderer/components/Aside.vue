@@ -10,11 +10,11 @@
             top: 0;
             left: 0;
             right: 0;
-            bottom: 30px;
+            bottom: 40px;
         }
         .aside-drop-menu {
             position: absolute;
-            height: 30px;
+            height: 40px;
             bottom: 0;
             left: 0;
             right: 0;
@@ -43,12 +43,11 @@
             <Dropdown trigger="click" placement="top-start" @on-click="dropMenuClick">
                 <Icon type="navicon-round" :size="26" color="white"></Icon>
                 <DropdownMenu slot="list">
-                    <DropdownItem name="upgrade">
+                    <!--<DropdownItem name="upgrade">
                         <Icon type="ios-cloud-download-outline" :size="14"></Icon>
                         检查更新
-                    </DropdownItem>
+                    </DropdownItem>-->
                     <DropdownItem name="about">
-                        <Icon type="ios-information" :size="14"></Icon>
                         关于
                     </DropdownItem>
                 </DropdownMenu>
@@ -73,7 +72,6 @@
 
 <script>
 import MENU from '../menu';
-import electron from 'electron';
 
 export default {
   data() {
@@ -100,7 +98,7 @@ export default {
       }
     },
     openUrl(url) {
-      electron.shell.openExternal(url);
+      this.$electron.shell.openExternal(url);
     },
   },
   watch: {

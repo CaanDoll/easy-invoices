@@ -15,6 +15,8 @@
             <FormItem :label-width="10">
                 <Button type="primary" icon="ios-search" @click="getDataList('search')" title="搜索"></Button>
                 <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add" title="创建"></Button>
+                <Button style="margin-left:5px;" type="primary" icon="ios-upload-outline" @click="downloadExcel"
+                        title="导出" :loading="downloadExcelLoading"></Button>
             </FormItem>
         </Form>
         <Table border :columns="dataList_table_column" :data="dataList" :loading="tableLoading"></Table>
@@ -62,11 +64,13 @@
 <script>
 import { datePickerOption } from '../../utils/option';
 import filter from '../../utils/filter';
+import download from '../../utils/download';
 
 export default {
   data() {
     return {
       // loading
+      downloadExcelLoading: false,
       btnLoading: false,
       tableLoading: false,
       // 日期控件配置
@@ -75,7 +79,7 @@ export default {
       goodsList: [],
       // ----常用
       search: {
-        goods_id: this.$route.query.goods_id || '',
+        goods_id: '',
         dateRange: [ null, null ],
         pageIndex: 1,
         pageSize: 10,
@@ -194,6 +198,7 @@ export default {
           { max: 200, message: '备注 长度 200 以内' },
         ],
       },
+      downloadExcelSQL: '',
     };
   },
   computed: {
@@ -234,9 +239,11 @@ export default {
       searchParams.dateRange[ 1 ] ? whereSQL += `AND create_time <= ${new Date(searchParams.dateRange[ 1 ] + 24 * 60 * 60 * 1000 - 1).getTime()} ` : null;
       const pageSQL = `LIMIT ${searchParams.pageSize} OFFSET ${(searchParams.pageIndex - 1) * searchParams.pageSize} `;
       const orderSQL = 'ORDER BY GOODS_DETAIL_LIST.id DESC ';
-      const rowSQL = `SELECT
+      // 导出sql
+      this.downloadExcelSQL = `SELECT
       GOODS_DETAIL_LIST.id,GOODS_DETAIL_LIST.goods_id,GOODS_DETAIL_LIST.type,GOODS_DETAIL_LIST.number,GOODS_DETAIL_LIST.create_time,GOODS_DETAIL_LIST.remark,GOODS.name,GOODS.total
-      from GOODS_DETAIL_LIST LEFT OUTER JOIN GOODS ON GOODS_DETAIL_LIST.goods_id = GOODS.id ` + (whereSQL ? 'WHERE ' + whereSQL : '') + orderSQL + pageSQL;
+      from GOODS_DETAIL_LIST LEFT OUTER JOIN GOODS ON GOODS_DETAIL_LIST.goods_id = GOODS.id ` + (whereSQL ? 'WHERE ' + whereSQL : '') + orderSQL;
+      const rowSQL = this.downloadExcelSQL + pageSQL;
       const countSQL = 'SELECT COUNT(id) AS totalCount from GOODS_DETAIL_LIST ' + (whereSQL ? 'WHERE ' + whereSQL : '');
       this.$logger(rowSQL);
       this.$db.all(rowSQL, (err, res) => {
@@ -324,8 +331,8 @@ export default {
             });
             this.$db.run('COMMIT');
             this.modalShow = false;
-            this.$Notice.success({
-              title: '新增成功',
+            this.$Message.success({
+              content: '新增成功',
             });
             this.getDataList(1);
             this.btnLoading = false;
@@ -363,14 +370,56 @@ export default {
           }
         });
         this.$db.run('COMMIT');
-        this.$Notice.success({
-          title: '删除成功',
+        this.$Message.success({
+          content: '删除成功',
         });
         this.getDataList();
       });
     },
+    // 导出表格
+    downloadExcel() {
+      this.downloadExcelLoading = true;
+      this.$db.all(this.downloadExcelSQL, (err, res) => {
+        if (err) {
+          this.$logger(err);
+          this.$Notice.error({
+            title: '搜索失败',
+            desc: err,
+          });
+        } else {
+          const data = [
+            [ '品名', '操作', '操作时间', '备注' ],
+          ];
+          for (const item of res) {
+            data.push([ item.name, item.type + item.number, filter.dateFilter(item.create_time), item.remark ]);
+          }
+          const name = '进出明细';
+          download.excel(name, [
+            {
+              name,
+              data,
+            },
+          ]).then(() => {
+            this.downloadExcelLoading = false;
+            this.$Message.success({
+              content: '导出成功',
+            });
+          }).catch(err => {
+            this.downloadExcelLoading = false;
+            this.$Notice.error({
+              title: '导出失败',
+              desc: err,
+            });
+          });
+        }
+      });
+    },
   },
   created() {
+    const goods_id = this.$route.query.goods_id;
+    if (goods_id) {
+      this.search.goods_id = goods_id;
+    }
     this.initGoodsDataList();
     this.getDataList('search');
   },

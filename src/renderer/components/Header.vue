@@ -5,9 +5,9 @@
         font-family: '微软雅黑';
         font-size: 14px;
         overflow: hidden;
-        background-color: @header-color;
+        /*background-color: @header-color;*/
+        background: linear-gradient(90deg, @header-color, @bg-color);
         -webkit-app-region: drag;
-        box-shadow: 0 0 1px #000;
         .left {
             float: left;
             margin-left: 8px;
@@ -42,18 +42,16 @@
     </header>
 </template>
 <script>
-import { ipcRenderer } from 'electron';
-
 export default {
   methods: {
     minWindows() {
-      ipcRenderer.send('min-windows');
+      this.$electron.ipcRenderer.send('min-window');
     },
     maxWindows() {
-      ipcRenderer.send('maxWindows');
+      this.$electron.ipcRenderer.send('max-window');
     },
     closeWindows() {
-      ipcRenderer.send('closeWindows');
+      this.$electron.ipcRenderer.send('close-window');
     },
   },
 };

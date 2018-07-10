@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { autoUpdater } from 'electron-updater';
 
 /**
  * Set `__static` path to static files in production
@@ -31,7 +32,10 @@ function createWindow() {
   });
 }
 
-app.on('ready', createWindow);
+app.on('ready', () => {
+  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates();
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -53,7 +57,7 @@ ipcMain.on('min-window', () => {
   mainWindow.minimize();
 });
 // 窗口最大化
-ipcMain.on('maxWindow', function() {
+ipcMain.on('max-window', () => {
   if (mainWindow.isMaximized()) {
     mainWindow.restore();
   } else {
@@ -61,8 +65,21 @@ ipcMain.on('maxWindow', function() {
   }
 });
 // 关闭
-ipcMain.on('closeWindow', function() {
+ipcMain.on('close-window', () => {
   mainWindow.close();
+});
+
+/**
+ * 下载
+ */
+ipcMain.on('download', (event, downloadPath) => {
+  mainWindow.webContents.downloadURL(downloadPath);
+  mainWindow.webContents.session.once('will-download', (event, item) => {
+    item.once('done', (event, state) => {
+      // 成功的话 state为complete
+      mainWindow.webContents.send('downstate', state);
+    });
+  });
 });
 
 
@@ -74,14 +91,6 @@ ipcMain.on('closeWindow', function() {
  * https://simulatedgreg.gitbooks.io/electron-vue/content/en/using-electron-builder.html#auto-updating
  */
 
-/*
-import { autoUpdater } from 'electron-updater'
-
 autoUpdater.on('update-downloaded', () => {
-  autoUpdater.quitAndInstall()
-})
-
-app.on('ready', () => {
-  if (process.env.NODE_ENV === 'production') autoUpdater.checkForUpdates()
-})
- */
+  autoUpdater.quitAndInstall();
+});

@@ -15,7 +15,8 @@
             <FormItem :label-width="10">
                 <Button type="primary" icon="ios-search" @click="getDataList('search')" title="搜索"></Button>
                 <Button style="margin-left:5px;" type="primary" icon="plus-round" @click="add" title="创建"></Button>
-                <Button style="margin-left:5px;" type="primary" icon="ios-upload-outline" @click="add" title="导出"></Button>
+                <Button style="margin-left:5px;" type="primary" icon="ios-upload-outline" @click="downloadExcel"
+                        title="导出" :loading="downloadExcelLoading"></Button>
             </FormItem>
         </Form>
         <Table border :columns="dataList_table_column" :data="dataList" :loading="tableLoading"></Table>
@@ -49,9 +50,9 @@
                 <Button @click="modalShow = false">
                     取消
                 </Button>
-                <Button type="primary" v-if="!modalParams.id" @click="addConfirm" :loading="btnLoading">确认
+                <Button type="primary" v-if="!modalParams.id" @click="addConfirm" :loading="modalBtnLoading">确认
                 </Button>
-                <Button type="primary" v-if="modalParams.id" @click="editConfirm" :loading="btnLoading">确认
+                <Button type="primary" v-if="modalParams.id" @click="editConfirm" :loading="modalBtnLoading">确认
                 </Button>
             </div>
         </Modal>
@@ -59,12 +60,14 @@
 </template>
 <script>
 import filter from '../../utils/filter';
+import download from '../../utils/download';
 
 export default {
   data() {
     return {
       // loading
-      btnLoading: false,
+      downloadExcelLoading: false,
+      modalBtnLoading: false,
       tableLoading: false,
       // ----特殊枚举
       searchInputNumberType: [
@@ -107,6 +110,12 @@ export default {
           minWidth: 200,
         },
         {
+          title: '数量',
+          key: 'total',
+          align: 'center',
+          minWidth: 150,
+        },
+        {
           title: '进价',
           key: 'buy_price',
           align: 'center',
@@ -117,30 +126,6 @@ export default {
           key: 'sell_price',
           align: 'center',
           minWidth: 150,
-        },
-        {
-          title: '数量',
-          key: 'total',
-          align: 'center',
-          minWidth: 150,
-        },
-        {
-          title: '创建时间',
-          key: 'create_time',
-          align: 'center',
-          minWidth: 150,
-          render: (h, params) => {
-            return h('span', filter.dateFilter(params.row.create_time));
-          },
-        },
-        {
-          title: '修改时间',
-          key: 'update_time',
-          align: 'center',
-          minWidth: 150,
-          render: (h, params) => {
-            return h('span', filter.dateFilter(params.row.update_time));
-          },
         },
         {
           title: '备注',
@@ -168,6 +153,24 @@ export default {
               ]);
             }
 
+          },
+        },
+        {
+          title: '创建时间',
+          key: 'create_time',
+          align: 'center',
+          minWidth: 150,
+          render: (h, params) => {
+            return h('span', filter.dateFilter(params.row.create_time));
+          },
+        },
+        {
+          title: '修改时间',
+          key: 'update_time',
+          align: 'center',
+          minWidth: 150,
+          render: (h, params) => {
+            return h('span', filter.dateFilter(params.row.update_time));
           },
         },
         {
@@ -267,6 +270,7 @@ export default {
           { max: 200, message: '备注 长度 200 以内' },
         ],
       },
+      downloadExcelSQL: '',
     };
   },
   computed: {
@@ -299,7 +303,9 @@ export default {
       searchParams.sellPriceMax !== null ? whereSQL += `AND sell_price <= ${searchParams.sellPriceMax} ` : null;
       const pageSQL = `LIMIT ${searchParams.pageSize} OFFSET ${(searchParams.pageIndex - 1) * searchParams.pageSize} `;
       const orderSQL = 'ORDER BY id DESC ';
-      const rowSQL = 'SELECT * from GOODS ' + whereSQL + orderSQL + pageSQL;
+      // 导出sql
+      this.downloadExcelSQL = 'SELECT * from GOODS ' + whereSQL + orderSQL;
+      const rowSQL = this.downloadExcelSQL + pageSQL;
       const countSQL = 'SELECT COUNT(id) AS totalCount from GOODS ' + whereSQL;
       this.$logger(rowSQL);
       this.$db.all(rowSQL, (err, res) => {
@@ -347,7 +353,7 @@ export default {
     addConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
-          this.btnLoading = true;
+          this.modalBtnLoading = true;
           const modalParams = this.modalParams;
           // 检测品名是否存在
           const SQL = `SELECT COUNT(id) AS totalCount from GOODS WHERE name = '${modalParams.name}'`;
@@ -360,12 +366,12 @@ export default {
               });
             } else {
               if (res.totalCount) {
-                this.$Notice.warning({
-                  title: '品名已存在',
+                this.$Message.warning({
+                  content: '品名已存在',
                 });
               } else {
-                const SQL = `INSERT INTO GOODS (name,buy_price,sell_price,total,remark,create_time,update_time)
-          VALUES ('${modalParams.name}','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.total}','${modalParams.remark}','${Date.now()}','')`;
+                const SQL = `INSERT INTO GOODS (name,total,buy_price,sell_price,remark,create_time,update_time)
+          VALUES ('${modalParams.name}','${modalParams.total}','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.remark}','${Date.now()}','')`;
                 this.$logger(SQL);
                 this.$db.run(SQL, err => {
                   if (err) {
@@ -376,12 +382,12 @@ export default {
                     });
                   } else {
                     this.modalShow = false;
-                    this.$Notice.success({
-                      title: '新增成功',
+                    this.$Message.success({
+                      content: '新增成功',
                     });
                     this.getDataList(1);
                   }
-                  this.btnLoading = false;
+                  this.modalBtnLoading = false;
                 });
               }
             }
@@ -414,7 +420,7 @@ export default {
     editConfirm() {
       this.$refs.formVali.validate(valid => {
         if (valid) {
-          this.btnLoading = true;
+          this.modalBtnLoading = true;
           const modalParams = this.modalParams;
           const SQL = `UPDATE GOODS SET
           name='${modalParams.name}'
@@ -433,12 +439,12 @@ export default {
               });
             } else {
               this.modalShow = false;
-              this.$Notice.success({
-                title: '编辑成功',
+              this.$Message.success({
+                content: '编辑成功',
               });
               this.getDataList();
             }
-            this.btnLoading = false;
+            this.modalBtnLoading = false;
           });
         }
       });
@@ -473,10 +479,48 @@ export default {
           }
         });
         this.$db.run('COMMIT');
-        this.$Notice.success({
-          title: '删除成功',
+        this.$Message.success({
+          content: '删除成功',
         });
         this.getDataList();
+      });
+    },
+    // 导出表格
+    downloadExcel() {
+      this.downloadExcelLoading = true;
+      this.$db.all(this.downloadExcelSQL, (err, res) => {
+        if (err) {
+          this.$logger(err);
+          this.$Notice.error({
+            title: '搜索失败',
+            desc: err,
+          });
+        } else {
+          const data = [
+            [ '品名', '数量', '进价', '售价', '备注', '创建时间', '修改时间' ],
+          ];
+          for (const item of res) {
+            data.push([ item.name, item.total, item.buy_price, item.sell_price, item.remark, filter.dateFilter(item.create_time), filter.dateFilter(item.update_time) ]);
+          }
+          const name = '物品管理';
+          download.excel(name, [
+            {
+              name,
+              data,
+            },
+          ]).then(() => {
+            this.downloadExcelLoading = false;
+            this.$Message.success({
+              content: '导出成功',
+            });
+          }).catch(err => {
+            this.downloadExcelLoading = false;
+            this.$Notice.error({
+              title: '导出失败',
+              desc: err,
+            });
+          });
+        }
       });
     },
   },
