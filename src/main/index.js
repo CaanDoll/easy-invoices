@@ -30,6 +30,8 @@ function createWindow() {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // mainWindow.webContents.openDevTools({ detach: true });
 }
 
 app.on('ready', () => {

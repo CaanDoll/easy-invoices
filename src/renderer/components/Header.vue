@@ -2,7 +2,7 @@
     @import "../assets/less/global.less";
 
     header {
-        font-family: '微软雅黑';
+        font-family: "Microsoft YaHei";
         font-size: 14px;
         overflow: hidden;
         /*background-color: @header-color;*/
