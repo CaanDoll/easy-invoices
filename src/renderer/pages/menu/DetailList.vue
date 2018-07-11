@@ -405,11 +405,16 @@ export default {
               content: '导出成功',
             });
           }).catch(err => {
-            this.downloadExcelLoading = false;
-            this.$Notice.error({
-              title: '导出失败',
-              desc: err,
-            });
+            if (err === 'canceled') {
+              this.$Message.warning({
+                content: '导出取消',
+              });
+            } else {
+              this.$Notice.error({
+                title: '导出失败',
+                desc: err,
+              });
+            }
           });
         }
       });

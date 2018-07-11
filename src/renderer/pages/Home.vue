@@ -1,3 +1,26 @@
+<template>
+    <div class="home-background theme-color1">
+        <Header class="header"></Header>
+        <Aside class="aside"></Aside>
+        <div class="container">
+            <router-view class="clearfix"></router-view>
+        </div>
+    </div>
+</template>
+<script>
+import Aside from '../components/Aside.vue';
+import Header from '../components/Header.vue';
+
+export default {
+  data() {
+    return {};
+  },
+  components: {
+    Aside,
+    Header,
+  },
+};
+</script>
 <style lang="less">
     @import "../assets/less/global.less";
 
@@ -30,28 +53,3 @@
         }
     }
 </style>
-
-<template>
-    <div class="home-background theme-color1">
-        <Header class="header"></Header>
-        <Aside class="aside"></Aside>
-        <div class="container">
-            <router-view class="clearfix"></router-view>
-        </div>
-    </div>
-</template>
-
-<script>
-import Aside from '../components/Aside.vue';
-import Header from '../components/Header.vue';
-
-export default {
-  data() {
-    return {};
-  },
-  components: {
-    Aside,
-    Header,
-  },
-};
-</script>
