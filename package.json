@@ -62,7 +62,7 @@
       "publish": [
         {
           "provider": "github",
-          "repo": "CaanDoll/easy-invoices",
+          "repo": "easy-invoices",
           "owner": "CaanDoll"
         }
       ]
