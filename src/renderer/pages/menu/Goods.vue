@@ -1,6 +1,6 @@
 <template>
     <div>
-        <Form :label-width="90" inline>
+        <Form :label-width="90" inline @keydown.native.enter.prevent="getDataList('search')">
             <FormItem label="品名">
                 <Input v-model="search.name" style="width: 203px" clearable></Input>
             </FormItem>
@@ -508,23 +508,23 @@ export default {
               name,
               data,
             },
-          ]).then(() => {
+          ]).then(arg => {
             this.downloadExcelLoading = false;
-            this.$Message.success({
-              content: '导出成功',
-            });
-          }).catch(err => {
-            this.downloadExcelLoading = false;
-            if (err === 'canceled') {
+            if (arg === 'completed') {
+              this.$Message.success({
+                content: '导出成功',
+              });
+            } else {
               this.$Message.warning({
                 content: '导出取消',
               });
-            } else {
-              this.$Notice.error({
-                title: '导出失败',
-                desc: err,
-              });
             }
+          }).catch(err => {
+            this.downloadExcelLoading = false;
+            this.$Notice.error({
+              title: '导出失败',
+              desc: err,
+            });
           });
         }
       });
