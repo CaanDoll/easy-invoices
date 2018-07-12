@@ -57,6 +57,10 @@
     },
     "linux": {
       "icon": "build/icons/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
     }
   },
   "gitHooks": {
