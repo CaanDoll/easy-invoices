@@ -2,7 +2,7 @@ before_build:
   - cmd: VERSION=`npm run packageVersion | awk 'END{print}'`
   - cmd: echo "version = ${VERSION}"
 
-version: ${VERSION}
+version: {VERSION}
 
 branches:
   only:
