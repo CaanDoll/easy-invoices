@@ -1,4 +1,8 @@
-version: 0.1.{build}
+before_build:
+  - cmd: VERSION=`npm run packageVersion | awk 'END{print}'`
+  - cmd: echo "version = ${VERSION}"
+
+version: ${VERSION}
 
 branches:
   only:
@@ -19,9 +23,7 @@ init:
 
 install:
   - ps: Install-Product node 8 x64
-  - git reset --hard HEAD
   - yarn
-  - node --version
 
 build_script:
   - yarn build:ci
