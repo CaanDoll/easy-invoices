@@ -24,12 +24,12 @@
               :page-size="searchParams.pageSize" @on-change="getDataList" @on-page-size-change="getDataListOnPageChange"
               :page-size-opts="[10,20,30,40,50]" show-total
               show-sizer show-elevator transfer></Page>
-        <Modal v-model="modalShow" :mask-closable="false" :title="modalTitle" @on-cancel="modalShow = false">
+        <Modal v-model="modalShow" :mask-closable="false" title="创建" @on-cancel="modalShow = false">
             <div>
                 <Form ref="formVali" :model="modalParams" :rules="ruleValidate" label-position="right"
-                      :label-width="120">
+                      :label-width="130" @keydown.native.enter.prevent="enterConfirm">
                     <FormItem label="品名" prop="goods_id">
-                        <Select v-model="modalParams.goods_id" style="width:200px;" placeholder="必选，输入关键字进行快捷选择"
+                        <Select v-model="modalParams.goods_id" style="width:250px;" placeholder="必选，输入关键字进行快捷选择"
                                 filterable @on-change="modalSelectGoods">
                             <Option v-for="(item,index) in goodsList" :value="item.id" :key="index">{{item.name}}
                             </Option>
@@ -53,9 +53,7 @@
                 <Button @click="modalShow = false">
                     取消
                 </Button>
-                <Button type="primary" v-if="!modalParams.id" @click="addConfirm" :loading="btnLoading">确认
-                </Button>
-                <Button type="primary" v-if="modalParams.id" @click="editConfirm" :loading="btnLoading">确认
+                <Button type="primary" @click="addConfirm" :loading="btnLoading">确认
                 </Button>
             </div>
         </Modal>
@@ -201,11 +199,6 @@ export default {
       downloadExcelSQL: '',
     };
   },
-  computed: {
-    modalTitle() {
-      return this.modalParams.id ? '修改' : '创建';
-    },
-  },
   methods: {
     // 初始化物品
     initGoodsDataList() {
@@ -341,6 +334,9 @@ export default {
           });
         }
       });
+    },
+    enterConfirm() {
+      this.addConfirm();
     },
     //  删除
     del(row) {

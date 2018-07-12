@@ -8,6 +8,7 @@ import logger from './logger';
 export const docDir = path.join(os.homedir(), 'easy-invoices');
 export const dbPath = path.join(docDir, 'data.sqlite3');
 fse.ensureFileSync(dbPath);
+
 const sqlite3 = sq3.verbose();
 const db = new sqlite3.Database(dbPath);
 db.serialize(() => {
