@@ -58,14 +58,7 @@
       "icon": "build/icons/icon.png"
     },
     "win": {
-      "icon": "build/icons/icon.png",
-      "publish": [
-        {
-          "provider": "github",
-          "repo": "easy-invoices",
-          "owner": "CaanDoll"
-        }
-      ]
+      "icon": "build/icons/icon.png"
     },
     "linux": {
       "icon": "build/icons/icon.png"
