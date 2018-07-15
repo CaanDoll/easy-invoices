@@ -4,7 +4,7 @@ import iView from 'iview';
 import routes from './route';
 import store from './store';
 import filters from './utils/filter';
-import db from './utils/db';
+import model from './utils/model/index';
 import logger from './utils/logger';
 import 'iview/dist/styles/iview.css';
 import './assets/less/common.less';
@@ -20,7 +20,7 @@ const router = new VueRouter({
   routes,
 });
 
-Vue.prototype.$db = db;
+Vue.prototype.$model = model;
 
 Vue.prototype.$logger = logger;
 
