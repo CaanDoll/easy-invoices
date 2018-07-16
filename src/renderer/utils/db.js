@@ -27,6 +27,7 @@ db.serialize(() => {
     name TEXT NOT NULL,
     buy_price REAL NOT NULL,
     sell_price REAL NOT NULL,
+    total_amount REAL NOT NULL,
     total INTEGER NOT NULL,
     remark TEXT NOT NULL,
     create_time INTEGER NOT NULL,
@@ -38,18 +39,26 @@ db.serialize(() => {
   /**
    * 进出明细表 GOODS_DETAIL_LIST
    * goods_id 物品id
-   * type 类型 (+,-)
-   * number 操作数量
+   * count 计数（+加 -减）
+   * buy_unit_price 实际进价
+   * sell_unit_price 实际售价
+   * amount 实际金额
    * remark 备注
-   * create_time 操作时间
+   * latest 是否某物品最新一条记录（不是最新操作无法删除）
+   * create_time 创建时间
+   * update_time 修改时间
    */
   db.run(`CREATE TABLE GOODS_DETAIL_LIST(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     goods_id TEXT NOT NULL, 
-    type TEXT NOT NULL,
-    number INTEGER NOT NULL,
+    count REAL NOT NULL,
+    sell_unit_price REAL NOT NULL,
+    buy_unit_price REAL NOT NULL,
+    amount REAL NOT NULL,
     remark TEXT NOT NULL,
+    latest INTEGER NOT NULL,
     create_time INTEGER NOT NULL,
+    update_time INTEGER NOT NULL,
     FOREIGN KEY (goods_id) REFERENCES GOODS(id)
     )`, err => {
     logger(err);

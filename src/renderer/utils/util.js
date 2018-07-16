@@ -14,3 +14,20 @@ exports.dateFilter = value => {
   }
   return '';
 };
+
+exports.getRegexp = type => {
+  switch (type) {
+    case 'money':
+      return /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/;
+    default:
+      return null;
+  }
+};
+
+exports.getDatePickerOpt = () => {
+  return {
+    disabledDate: date => {
+      return date.valueOf() > Date.now();
+    },
+  };
+};
