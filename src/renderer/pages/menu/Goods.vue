@@ -42,12 +42,12 @@
                         <Input v-model="modalParams.name" placeholder="必填，长度 100 以内"
                                style="width: 250px"></Input>
                     </FormItem>
-                    <FormItem label="标准进价" prop="buy_price">
-                        <Input v-model.number="modalParams.buy_price" placeholder="非必填，小数位不超过2位的正整数"
+                    <FormItem label="标准进价" prop="standard_buy_unit_price">
+                        <Input v-model.number="modalParams.standard_buy_unit_price" placeholder="非必填，小数位不超过2位的正整数"
                                style="width: 250px"></Input>
                     </FormItem>
-                    <FormItem label="标准售价" prop="sell_price">
-                        <Input v-model.number="modalParams.sell_price" placeholder="非必填，小数位不超过2位的正整数"
+                    <FormItem label="标准售价" prop="standard_sell_unit_price">
+                        <Input v-model.number="modalParams.standard_sell_unit_price" placeholder="非必填，小数位不超过2位的正整数"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="备注" prop="remark">
@@ -150,19 +150,22 @@ export default {
         },
         {
           title: '数量',
-          key: 'total',
+          key: 'total_count',
           align: 'center',
           minWidth: 150,
+          /* render: (h, params) => {
+            return h('span', params.row.total_count.toFixed(3));
+          },*/
         },
         {
           title: '标准进价',
-          key: 'buy_price',
+          key: 'standard_buy_unit_price',
           align: 'center',
           minWidth: 150,
         },
         {
           title: '标准售价',
-          key: 'sell_price',
+          key: 'standard_sell_unit_price',
           align: 'center',
           minWidth: 150,
         },
@@ -287,8 +290,8 @@ export default {
       modalShow: false,
       modalParams: {
         name: '',
-        buy_price: '',
-        sell_price: '',
+        standard_buy_unit_price: '',
+        standard_sell_unit_price: '',
         remark: '',
       },
       delModalShow: false,
@@ -297,10 +300,10 @@ export default {
           { required: true, message: '请输入 品名' },
           { max: 100, message: '品名 长度 100 以内' },
         ],
-        buy_price: [
+        standard_buy_unit_price: [
           { pattern: util.getRegexp('money'), message: '标准进价 只能为 小数位不超过2位的正整数' },
         ],
-        sell_price: [
+        standard_sell_unit_price: [
           { pattern: util.getRegexp('money'), message: '标准售价 只能为 小数位不超过2位的正整数' },
         ],
         remark: [
@@ -332,12 +335,12 @@ export default {
       }
       const searchParams = this.searchParams;
       let whereSQL = `WHERE name LIKE '%${searchParams.name}%' AND remark LIKE '%${searchParams.remark}%' `;
-      searchParams.totalMin !== null ? whereSQL += `AND total >= ${searchParams.totalMin} ` : null;
-      searchParams.totalMax !== null ? whereSQL += `AND total <= ${searchParams.totalMax} ` : null;
-      searchParams.buyPriceMin !== null ? whereSQL += `AND buy_price >= ${searchParams.buyPriceMin} ` : null;
-      searchParams.buyPriceMax !== null ? whereSQL += `AND buy_price <= ${searchParams.buyPriceMax} ` : null;
-      searchParams.sellPriceMin !== null ? whereSQL += `AND sell_price >= ${searchParams.sellPriceMin} ` : null;
-      searchParams.sellPriceMax !== null ? whereSQL += `AND sell_price <= ${searchParams.sellPriceMax} ` : null;
+      searchParams.totalMin !== null ? whereSQL += `AND total_count >= ${searchParams.totalMin} ` : null;
+      searchParams.totalMax !== null ? whereSQL += `AND total_count <= ${searchParams.totalMax} ` : null;
+      searchParams.buyPriceMin !== null ? whereSQL += `AND standard_buy_unit_price >= ${searchParams.buyPriceMin} ` : null;
+      searchParams.buyPriceMax !== null ? whereSQL += `AND standard_buy_unit_price <= ${searchParams.buyPriceMax} ` : null;
+      searchParams.sellPriceMin !== null ? whereSQL += `AND standard_sell_unit_price >= ${searchParams.sellPriceMin} ` : null;
+      searchParams.sellPriceMax !== null ? whereSQL += `AND standard_sell_unit_price <= ${searchParams.sellPriceMax} ` : null;
       const pageSQL = `LIMIT ${searchParams.pageSize} OFFSET ${(searchParams.pageIndex - 1) * searchParams.pageSize} `;
       const orderSQL = `ORDER BY id ${searchParams.sort} `;
       // 导出sql
@@ -412,8 +415,8 @@ export default {
                 });
                 this.modalBtnLoading = false;
               } else {
-                const SQL = `INSERT INTO GOODS (name,total,total_amount,buy_price,sell_price,remark,create_time,update_time)
-          VALUES ('${modalParams.name}','0','0','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.remark}','${Date.now()}','')`;
+                const SQL = `INSERT INTO GOODS (name,total_count,total_amount,standard_buy_unit_price,standard_sell_unit_price,remark,create_time,update_time)
+          VALUES ('${modalParams.name}','0','0','${modalParams.standard_buy_unit_price}','${modalParams.standard_sell_unit_price}','${modalParams.remark}','${Date.now()}','')`;
                 this.$logger(SQL);
                 this.$db.run(SQL, err => {
                   if (err) {
@@ -452,8 +455,8 @@ export default {
       this.modalParams = {
         id: row.id,
         name: row.name,
-        buy_price: row.buy_price,
-        sell_price: row.sell_price,
+        standard_buy_unit_price: row.standard_buy_unit_price,
+        standard_sell_unit_price: row.standard_sell_unit_price,
         remark: row.remark,
       };
       this.modalShow = true;
@@ -482,8 +485,8 @@ export default {
               } else {
                 const SQL = `UPDATE GOODS SET
           name='${modalParams.name}'
-          ,buy_price='${modalParams.buy_price}'
-          ,sell_price='${modalParams.sell_price}'
+          ,standard_buy_unit_price='${modalParams.standard_buy_unit_price}'
+          ,standard_sell_unit_price='${modalParams.standard_sell_unit_price}'
           ,remark='${modalParams.remark}'
           ,update_time='${Date.now()}'
           WHERE id = ${modalParams.id}`;
@@ -575,10 +578,10 @@ export default {
           });
         } else {
           const data = [
-            [ '品名', '数量', '进价', '售价', '备注', '创建时间', '修改时间' ],
+            [ '品名', '数量', '标准进价', '标准售价', '总金额', '备注', '创建时间', '修改时间' ],
           ];
           for (const item of res) {
-            data.push([ item.name, item.total, item.buy_price, item.sell_price, item.remark, util.dateFilter(item.create_time), util.dateFilter(item.update_time) ]);
+            data.push([ item.name, item.total_count, item.standard_buy_unit_price, item.standard_sell_unit_price, item.total_amount, item.remark, util.dateFilter(item.create_time), util.dateFilter(item.update_time) ]);
           }
           const name = '物品管理';
           download.excel(name, [

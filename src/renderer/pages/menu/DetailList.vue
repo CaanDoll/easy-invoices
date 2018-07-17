@@ -46,8 +46,9 @@
                     <template v-if="!modalParams.id">
                         <FormItem label="品名" prop="goods_id">
                             <Select v-model="modalParams.goods_id" style="width:250px;" placeholder="必选，输入关键字进行快捷选择"
-                                    filterable @on-change="modalSelectGoods">
-                                <Option v-for="(item,index) in goodsList" :value="item.id" :key="index">{{item.name}}
+                                    ref="modalGoodsIdSelect"
+                                    filterable clearable @on-change="modalSelectGoods">
+                                <Option v-for="(item) in goodsList" :value="item.id" :key="item.id">{{item.name}}
                                 </Option>
                             </Select>
                         </FormItem>
@@ -55,17 +56,18 @@
                             <FormItem label="操作" prop="type" inline>
                                 <Select v-model="modalParams.type" style="width:50px;" placeholder="">
                                     <Option value="+">+</Option>
-                                    <Option value="-" v-if="this.modalParams.total">-</Option>
+                                    <Option value="-" v-if="modalParams.total_count">-</Option>
                                 </Select>
                                 <InputNumber v-model="modalParams.count" :min="0.001" :precision="3"
-                                             :max="modalParams.type === '-' ? modalParams.total : Infinity"></InputNumber>
+                                             :max="modalParams.type === '-' ? modalParams.total_count : Infinity"></InputNumber>
                             </FormItem>
-                            <FormItem label="实际进价" prop="buy_unit_price" v-show="modalParams.type === '+'">
-                                <Input v-model.number="modalParams.buy_unit_price" placeholder="非必填，小数位不超过2位的正整数"
+                            <FormItem label="实际进价" prop="actual_buy_unit_price" v-show="modalParams.type === '+'">
+                                <Input v-model.number="modalParams.actual_buy_unit_price" placeholder="非必填，小数位不超过2位的正整数"
                                        style="width: 250px"></Input>
                             </FormItem>
-                            <FormItem label="实际售价" prop="sell_unit_price" v-show="modalParams.type === '-'">
-                                <Input v-model.number="modalParams.sell_unit_price" placeholder="非必填，小数位不超过2位的正整数"
+                            <FormItem label="实际售价" prop="actual_sell_unit_price" v-show="modalParams.type === '-'">
+                                <Input v-model.number="modalParams.actual_sell_unit_price"
+                                       placeholder="非必填，小数位不超过2位的正整数"
                                        style="width: 250px"></Input>
                             </FormItem>
                         </template>
@@ -144,13 +146,13 @@ export default {
         },
         {
           title: '实际进价',
-          key: 'buy_unit_price',
+          key: 'actual_buy_unit_price',
           align: 'center',
           minWidth: 150,
         },
         {
           title: '实际售价',
-          key: 'sell_unit_price',
+          key: 'actual_sell_unit_price',
           align: 'center',
           minWidth: 150,
         },
@@ -159,6 +161,9 @@ export default {
           key: 'amount',
           align: 'center',
           minWidth: 150,
+          render: (h, params) => {
+            return h('span', params.row.amount > 0 ? '+' + params.row.amount : params.row.amount);
+          },
         },
         {
           title: '备注',
@@ -271,15 +276,15 @@ export default {
         goods_id: '',
         name: '',
         count: 1.000,
-        buy_unit_price: 0,
-        sell_unit_price: 0,
+        actual_buy_unit_price: 0,
+        actual_sell_unit_price: 0,
         remark: '',
         // 限制用
         type: '+',
         total_amount: 0,
-        total: 0,
-        buy_price: 0,
-        sell_price: 0,
+        total_count: 0,
+        standard_buy_unit_price: 0,
+        standard_sell_unit_price: 0,
       },
       ruleValidate: {
         goods_id: [
@@ -287,6 +292,12 @@ export default {
         ],
         remark: [
           { max: 200, message: '备注 长度 200 以内' },
+        ],
+        actual_buy_unit_price: [
+          { pattern: util.getRegexp('money'), message: '实际进价 只能为 小数位不超过2位的正整数' },
+        ],
+        actual_sell_unit_price: [
+          { pattern: util.getRegexp('money'), message: '实际售价 只能为 小数位不超过2位的正整数' },
         ],
       },
       downloadExcelSQL: '',
@@ -338,14 +349,15 @@ export default {
       GOODS_DETAIL_LIST.goods_id,
       GOODS_DETAIL_LIST.count,
       GOODS_DETAIL_LIST.latest,
-      GOODS_DETAIL_LIST.buy_unit_price,
-      GOODS_DETAIL_LIST.sell_unit_price,
+      GOODS_DETAIL_LIST.actual_buy_unit_price,
+      GOODS_DETAIL_LIST.actual_sell_unit_price,
       GOODS_DETAIL_LIST.amount,
       GOODS_DETAIL_LIST.create_time,
       GOODS_DETAIL_LIST.update_time,
       GOODS_DETAIL_LIST.remark,
       GOODS.name,
-      GOODS.total
+      GOODS.total_count,
+      GOODS.total_amount
       from GOODS_DETAIL_LIST LEFT OUTER JOIN GOODS ON GOODS_DETAIL_LIST.goods_id = GOODS.id ` + whereSQL + orderSQL;
       const rowSQL = this.downloadExcelSQL + pageSQL;
       const countSQL = 'SELECT COUNT(id) AS totalCount from GOODS_DETAIL_LIST ' + whereSQL;
@@ -388,12 +400,13 @@ export default {
     add() {
       this.$refs.formVali.resetFields();
       this.modalParams = this.$options.data().modalParams;
+      this.$refs.modalGoodsIdSelect.clearSingleSelect();
       this.modalShow = true;
     },
     // 选择物品回调
     modalSelectGoods(val) {
       if (val) {
-        const SQL = `SELECT total,buy_price,sell_price,total_amount from GOODS WHERE id = '${val}'`;
+        const SQL = `SELECT total_count,standard_buy_unit_price,standard_sell_unit_price,total_amount from GOODS WHERE id = '${val}'`;
         this.$logger(SQL);
         this.$db.get(SQL, (err, res) => {
           if (err) {
@@ -403,10 +416,12 @@ export default {
               desc: err,
             });
           } else {
-            this.modalParams.total = res.total;
+            this.modalParams.type = '+';
+            this.modalParams.count = 1.000;
+            this.modalParams.total_count = res.total_count;
             this.modalParams.total_amount = res.total_amount;
-            this.modalParams.buy_unit_price = res.buy_price;
-            this.modalParams.sell_unit_price = res.sell_price;
+            this.modalParams.actual_buy_unit_price = res.standard_buy_unit_price;
+            this.modalParams.actual_sell_unit_price = res.standard_sell_unit_price;
           }
         });
       }
@@ -418,14 +433,14 @@ export default {
           this.modalBtnLoading = true;
           const modalParams = this.modalParams;
           this.$db.serialize(() => {
-            const buy_unit_price = modalParams.type === '+' ? modalParams.buy_unit_price : '';
-            const sell_unit_price = modalParams.type === '-' ? modalParams.sell_unit_price : '';
+            const actual_buy_unit_price = modalParams.type === '+' ? modalParams.actual_buy_unit_price : '';
+            const actual_sell_unit_price = modalParams.type === '-' ? modalParams.actual_sell_unit_price : '';
             const count = modalParams.type + modalParams.count;
-            const amount = -(((buy_unit_price || sell_unit_price || 0) * count).toFixed(2));
+            const amount = -((actual_buy_unit_price || actual_sell_unit_price || 0) * count).toFixed(2);
             this.$db.run('BEGIN');
             // 往物品total和total_amount中做运算
             const computeSQL = `UPDATE GOODS SET
-            total = ${modalParams.total + count}
+            total_count = ${modalParams.total_count + count}
             ,total_amount = ${modalParams.total_amount + amount}
             WHERE id = '${modalParams.goods_id}'`;
             this.$logger(computeSQL);
@@ -453,8 +468,8 @@ export default {
               }
             });
             // 往明细记录中增加记录
-            const insertSQL = `INSERT INTO GOODS_DETAIL_LIST (goods_id,count,remark,buy_unit_price,sell_unit_price,amount,latest,create_time,update_time)
-          VALUES ('${modalParams.goods_id}','${count}','${modalParams.remark}','${buy_unit_price}','${sell_unit_price}','${amount}','1','${Date.now()}','')`;
+            const insertSQL = `INSERT INTO GOODS_DETAIL_LIST (goods_id,count,remark,actual_buy_unit_price,actual_sell_unit_price,amount,latest,create_time,update_time)
+          VALUES ('${modalParams.goods_id}','${count}','${modalParams.remark}','${actual_buy_unit_price}','${actual_sell_unit_price}','${amount}','1','${Date.now()}','')`;
             this.$logger(insertSQL);
             this.$db.run(insertSQL, err => {
               if (err) {
@@ -528,7 +543,10 @@ export default {
       this.$db.serialize(() => {
         this.$db.run('BEGIN');
         // 回滚运算
-        const computeSQL = `UPDATE GOODS SET total = ${row.total + '-' + row.count} WHERE id = '${row.goods_id}'`;
+        const computeSQL = `UPDATE GOODS SET
+        total_count = ${(row.total_count - row.count).toFixed(3)}
+        ,total_amount = ${row.total_amount - row.amount}
+        WHERE id = '${row.goods_id}'`;
         this.$logger(computeSQL);
         this.$db.run(computeSQL, err => {
           if (err) {
@@ -585,10 +603,19 @@ export default {
           });
         } else {
           const data = [
-            [ '品名', '操作', '操作时间', '备注' ],
+            [ '品名', '计数', '实际进价', '实际售价', '金额', '备注', '创建时间', '修改时间' ],
           ];
           for (const item of res) {
-            data.push([ item.name, item.count, util.dateFilter(item.create_time), item.remark ]);
+            data.push([
+              item.name,
+              item.count,
+              item.actual_buy_unit_price,
+              item.actual_sell_unit_price,
+              item.amount,
+              item.remark,
+              util.dateFilter(item.create_time),
+              util.dateFilter(item.update_time),
+            ]);
           }
           const name = '进出明细';
           download.excel(name, [

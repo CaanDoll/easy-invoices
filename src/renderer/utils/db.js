@@ -1,11 +1,9 @@
 import fse from 'fs-extra';
 import path from 'path';
-import os from 'os';
 import sq3 from 'sqlite3';
 import logger from './logger';
-
+import { docDir } from './settings';
 // 将数据存至系统用户目录，防止用户误删程序
-export const docDir = path.join(os.homedir(), 'easy-invoices');
 export const dbPath = path.join(docDir, 'data.sqlite3');
 fse.ensureFileSync(dbPath);
 
@@ -15,21 +13,22 @@ db.serialize(() => {
   /**
    * 物品表 GOODS
    * name 品名
-   * buy_price 进价
-   * sell_price 售价
-   * total 数量
+   * standard_buy_unit_price 标准进价
+   * standard_sell_unit_price 标准售价
+   * total_amount 总金额
+   * total_count 总数量
    * remark 备注
    * create_time 创建时间
    * update_time 修改时间
    */
   db.run(`CREATE TABLE GOODS(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    buy_price REAL NOT NULL,
-    sell_price REAL NOT NULL,
-    total_amount REAL NOT NULL,
-    total INTEGER NOT NULL,
-    remark TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    standard_buy_unit_price DECIMAL(15,2) NOT NULL,
+    standard_sell_unit_price DECIMAL(15,2) NOT NULL,
+    total_amount DECIMAL(15,2) NOT NULL,
+    total_count DECIMAL(15,3) NOT NULL,
+    remark VARCHAR(255) NOT NULL,
     create_time INTEGER NOT NULL,
     update_time INTEGER NOT NULL
     )`, err => {
@@ -40,22 +39,22 @@ db.serialize(() => {
    * 进出明细表 GOODS_DETAIL_LIST
    * goods_id 物品id
    * count 计数（+加 -减）
-   * buy_unit_price 实际进价
-   * sell_unit_price 实际售价
+   * actual_buy_unit_price 实际进价
+   * actual_sell_unit_price 实际售价
    * amount 实际金额
    * remark 备注
-   * latest 是否某物品最新一条记录（不是最新操作无法删除）
+   * latest 是否某物品最新一条记录（不是最新操作无法删除）（1是 0不是）
    * create_time 创建时间
    * update_time 修改时间
    */
   db.run(`CREATE TABLE GOODS_DETAIL_LIST(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    goods_id TEXT NOT NULL, 
-    count REAL NOT NULL,
-    sell_unit_price REAL NOT NULL,
-    buy_unit_price REAL NOT NULL,
-    amount REAL NOT NULL,
-    remark TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    goods_id INTEGER NOT NULL, 
+    count DECIMAL(15,3) NOT NULL,
+    actual_sell_unit_price DECIMAL(15,2) NOT NULL,
+    actual_buy_unit_price DECIMAL(15,2) NOT NULL,
+    amount DECIMAL(15,2) NOT NULL,
+    remark VARCHAR(255) NOT NULL,
     latest INTEGER NOT NULL,
     create_time INTEGER NOT NULL,
     update_time INTEGER NOT NULL,
@@ -63,7 +62,6 @@ db.serialize(() => {
     )`, err => {
     logger(err);
   });
-})
-;
+});
 
 export default db;

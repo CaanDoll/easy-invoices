@@ -9,6 +9,7 @@ import logger from './utils/logger';
 import 'iview/dist/styles/iview.css';
 import './assets/less/common.less';
 import App from './App.vue';
+import './utils/upgrade';
 
 Vue.use(VueRouter);
 
