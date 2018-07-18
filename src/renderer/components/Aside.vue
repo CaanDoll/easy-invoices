@@ -72,7 +72,7 @@
                 <p>该软件免费使用，并开源于<a href="javascript:void(0)"
                                   @click="openUrl('https://github.com/CaanDoll/easy-invoices')">github</a>，目前只构建了windows版本。
                 </p>
-                <p>如果您有意见或更好的建议，请联系我。</p>
+                <p>如果您有BUG反馈、意见或更好的建议，请联系我。</p>
                 <p>我的邮箱：<strong>caandoll@aliyun.com</strong></p>
             </div>
             <div class="psText">

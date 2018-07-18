@@ -435,12 +435,12 @@ export default {
           this.$db.serialize(() => {
             const actual_buy_unit_price = modalParams.type === '+' ? modalParams.actual_buy_unit_price : '';
             const actual_sell_unit_price = modalParams.type === '-' ? modalParams.actual_sell_unit_price : '';
-            const count = modalParams.type + modalParams.count;
+            const count = Number(modalParams.type + modalParams.count);
             const amount = -((actual_buy_unit_price || actual_sell_unit_price || 0) * count).toFixed(2);
             this.$db.run('BEGIN');
-            // 往物品total和total_amount中做运算
+            // 往物品total_count和total_amount中做运算
             const computeSQL = `UPDATE GOODS SET
-            total_count = ${modalParams.total_count + count}
+            total_count = ${(modalParams.total_count + count).toFixed(3)}
             ,total_amount = ${modalParams.total_amount + amount}
             WHERE id = '${modalParams.goods_id}'`;
             this.$logger(computeSQL);
