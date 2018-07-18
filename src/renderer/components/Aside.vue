@@ -53,7 +53,7 @@
             <Dropdown trigger="click" placement="top-start" @on-click="dropMenuClick">
                 <Icon type="navicon-round" :size="26" color="white"></Icon>
                 <DropdownMenu slot="list">
-                    <!--<DropdownItem name="upgrade">
+                    <!--<DropdownItem name="update">
                         <Icon type="ios-cloud-download-outline" :size="14"></Icon>
                         检查更新
                     </DropdownItem>-->
@@ -110,8 +110,8 @@ export default {
     },
     dropMenuClick(name) {
       switch (name) {
-        case 'upgrade':
-          console.log('check upgrade');
+        case 'update':
+          console.log('check update');
           break;
         case 'about':
           this.modalShow = true;
