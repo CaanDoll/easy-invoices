@@ -3,12 +3,14 @@ import VueRouter from 'vue-router';
 import iView from 'iview';
 import routes from './route';
 import store from './store';
-import filters from './utils/filter';
+import filters from './utils/util';
 import db from './utils/db';
 import logger from './utils/logger';
 import 'iview/dist/styles/iview.css';
 import './assets/less/common.less';
 import App from './App.vue';
+// 升级脚本
+import './utils/upgrade';
 
 Vue.use(VueRouter);
 

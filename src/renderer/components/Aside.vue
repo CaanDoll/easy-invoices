@@ -72,12 +72,12 @@
                 <p>该软件免费使用，并开源于<a href="javascript:void(0)"
                                   @click="openUrl('https://github.com/CaanDoll/easy-invoices')">github</a>，目前只构建了windows版本。
                 </p>
-                <p>如果您有意见或更好的建议，请联系我。</p>
+                <p>如果您有BUG反馈、意见或更好的建议，请联系我。</p>
                 <p>我的邮箱：<strong>caandoll@aliyun.com</strong></p>
             </div>
             <div class="psText">
-                <p>PS：数据存放在<a href="javascript:void(0)"
-                              @click="openPath(docDir)">{{dbPath}}</a>。若有重装系统等操作，请记得备份，并在重装后放至相同目录</p>
+                <p>PS：数据与配置文件存放在<a href="javascript:void(0)"
+                              @click="openPath(docDir)">{{docDir}}</a>下。若有重装系统等操作，请记得统一备份，并在重装后放至相同目录</p>
             </div>
             <div slot="footer">
                 <Button @click="modalShow = false">
@@ -92,7 +92,7 @@
 <script>
 import MENU from '../menu';
 import packageJson from '../../../package.json';
-import { docDir, dbPath } from '../utils/db';
+import { docDir } from '../utils/settings';
 
 export default {
   data() {
@@ -102,7 +102,6 @@ export default {
       modalShow: false,
       version: packageJson.version,
       docDir,
-      dbPath,
     };
   },
   methods: {

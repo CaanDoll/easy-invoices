@@ -4,13 +4,22 @@
             <FormItem label="品名">
                 <Input v-model="search.name" style="width: 203px" clearable></Input>
             </FormItem>
+            <FormItem label="备注">
+                <Input v-model="search.remark" style="width: 203px" clearable></Input>
+            </FormItem>
             <FormItem :label="item.label" v-for="(item,index) in searchInputNumberType" :key="index">
                 <InputNumber v-model="search[item.min]" :min="0"
-                             :max="search[item.max] ? search[item.max] :Number.MAX_VALUE"></InputNumber>
+                             :max="search[item.max] ? search[item.max] :Infinity"></InputNumber>
                 —
                 <InputNumber v-model="search[item.max]" :min="search[item.min] ? search[item.min] :0"></InputNumber>
                 <Button type="text" shape="circle" icon="close-round" size="small" title="清空该项输入"
                         @click="clearInputNumber(item.max,item.min)"></Button>
+            </FormItem>
+            <FormItem label="排序">
+                <Select v-model="search.sort" style="width:200px;">
+                    <Option v-for="(item,index) in sortList" :value="item.value" :key="index">{{item.label}}
+                    </Option>
+                </Select>
             </FormItem>
             <FormItem :label-width="10">
                 <Button type="primary" icon="ios-search" @click="getDataList('search')" title="搜索"></Button>
@@ -19,7 +28,8 @@
                         title="导出" :loading="downloadExcelLoading"></Button>
             </FormItem>
         </Form>
-        <Table border :columns="dataList_table_column" :data="dataList" :loading="tableLoading"></Table>
+        <Table border stripe :columns="dataList_table_column" :data="dataList" :loading="tableLoading"
+               @on-row-dblclick="tableRowDblClick"></Table>
         <Page :total="dataListTotalCount" :current="searchParams.pageIndex"
               :page-size="searchParams.pageSize" @on-change="getDataList" @on-page-size-change="getDataListOnPageChange"
               :page-size-opts="[10,20,30,40,50]" show-total
@@ -32,12 +42,12 @@
                         <Input v-model="modalParams.name" placeholder="必填，长度 100 以内"
                                style="width: 250px"></Input>
                     </FormItem>
-                    <FormItem label="进价" prop="buy_price">
-                        <Input v-model.number="modalParams.buy_price" placeholder="非必填，小数位不超过2位的正整数"
+                    <FormItem label="标准进价" prop="standard_buy_unit_price">
+                        <Input v-model.number="modalParams.standard_buy_unit_price" placeholder="非必填，小数位不超过2位的正整数"
                                style="width: 250px"></Input>
                     </FormItem>
-                    <FormItem label="售价" prop="sell_price">
-                        <Input v-model.number="modalParams.sell_price" placeholder="非必填，小数位不超过2位的正整数"
+                    <FormItem label="标准售价" prop="standard_sell_unit_price">
+                        <Input v-model.number="modalParams.standard_sell_unit_price" placeholder="非必填，小数位不超过2位的正整数"
                                style="width: 250px"></Input>
                     </FormItem>
                     <FormItem label="备注" prop="remark">
@@ -56,10 +66,27 @@
                 </Button>
             </div>
         </Modal>
+        <Modal v-model="delModalShow" width="370">
+            <p slot="header" style="color:#f60;text-align:center">
+                <Icon type="information-circled"></Icon>
+                <span>删除确认</span>
+            </p>
+            <div style="text-align:center;line-height: 26px;">
+                <p>将永久删除 <strong>{{modalParams.name}}</strong> ，并删除该物品所有进出明细，且<strong>无法恢复</strong>。</p>
+                <p>请输入该物品品名以确认删除。</p>
+                <Input v-model="modalParams.input"
+                       style="width: 250px"></Input>
+            </div>
+            <div slot="footer">
+                <Button type="error" size="large" long @click="delConfrim" :loading="modalBtnLoading"
+                        :disabled="modalParams.name !== modalParams.input">删除
+                </Button>
+            </div>
+        </Modal>
     </div>
 </template>
 <script>
-import filter from '../../utils/filter';
+import util from '../../utils/util';
 import download from '../../utils/download';
 
 export default {
@@ -70,6 +97,16 @@ export default {
       modalBtnLoading: false,
       tableLoading: false,
       // ----特殊枚举
+      sortList: [
+        {
+          label: '按创建倒序',
+          value: 'DESC',
+        },
+        {
+          label: '按创建顺序',
+          value: 'ASC',
+        },
+      ],
       searchInputNumberType: [
         {
           label: '数量',
@@ -90,6 +127,8 @@ export default {
       // ----常用
       search: {
         name: '',
+        remark: '',
+        sort: 'DESC',
         totalMax: null,
         totalMin: null,
         buyPriceMax: null,
@@ -111,21 +150,33 @@ export default {
         },
         {
           title: '数量',
-          key: 'total',
+          key: 'total_count',
+          align: 'center',
+          minWidth: 150,
+          /* render: (h, params) => {
+            return h('span', params.row.total_count.toFixed(3));
+          },*/
+        },
+        {
+          title: '标准进价',
+          key: 'standard_buy_unit_price',
           align: 'center',
           minWidth: 150,
         },
         {
-          title: '进价',
-          key: 'buy_price',
+          title: '标准售价',
+          key: 'standard_sell_unit_price',
           align: 'center',
           minWidth: 150,
         },
         {
-          title: '售价',
-          key: 'sell_price',
+          title: '总金额',
+          key: 'total_amount',
           align: 'center',
           minWidth: 150,
+          render: (h, params) => {
+            return h('span', params.row.total_amount > 0 ? '+' + params.row.total_amount : params.row.total_amount);
+          },
         },
         {
           title: '备注',
@@ -161,7 +212,7 @@ export default {
           align: 'center',
           minWidth: 150,
           render: (h, params) => {
-            return h('span', filter.dateFilter(params.row.create_time));
+            return h('span', util.dateFilter(params.row.create_time));
           },
         },
         {
@@ -170,11 +221,11 @@ export default {
           align: 'center',
           minWidth: 150,
           render: (h, params) => {
-            return h('span', filter.dateFilter(params.row.update_time));
+            return h('span', util.dateFilter(params.row.update_time));
           },
         },
         {
-          title: ' ',
+          title: '操作',
           key: 'action',
           width: 130,
           align: 'center',
@@ -214,35 +265,24 @@ export default {
                   },
                 },
               }),
-              h('Poptip', {
+              h('Button', {
                 props: {
                   type: 'error',
-                  confirm: true,
-                  title: '若删除，将一并删除该物品明细',
-                  placement: 'top-end',
-                  transfer: true,
-                  'ok-text': '删除',
+                  size: 'small',
+                  icon: 'trash-b',
+                },
+                attrs: {
+                  title: '删除',
+                },
+                style: {
+                  'margin-left': '5px',
                 },
                 on: {
-                  'on-ok': () => {
+                  click: () => {
                     this.del(params.row);
                   },
                 },
-              }, [
-                h('Button', {
-                  props: {
-                    type: 'error',
-                    size: 'small',
-                    icon: 'trash-b',
-                  },
-                  attrs: {
-                    title: '删除',
-                  },
-                  style: {
-                    'margin-left': '5px',
-                  },
-                }),
-              ]),
+              }),
             ]);
           },
         },
@@ -250,21 +290,21 @@ export default {
       modalShow: false,
       modalParams: {
         name: '',
-        buy_price: '',
-        sell_price: '',
-        total: 0,
+        standard_buy_unit_price: '',
+        standard_sell_unit_price: '',
         remark: '',
       },
+      delModalShow: false,
       ruleValidate: {
         name: [
           { required: true, message: '请输入 品名' },
           { max: 100, message: '品名 长度 100 以内' },
         ],
-        buy_price: [
-          { pattern: /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/, message: '进价 只能为 小数位不超过2位的正整数' },
+        standard_buy_unit_price: [
+          { pattern: util.getRegexp('money'), message: '标准进价 只能为 小数位不超过2位的正整数' },
         ],
-        sell_price: [
-          { pattern: /^(([1-9][0-9]*)|(([0]\.\d{1,2}|[1-9][0-9]*\.\d{1,2})))$/, message: '进价 只能为 小数位不超过2位的正整数' },
+        standard_sell_unit_price: [
+          { pattern: util.getRegexp('money'), message: '标准售价 只能为 小数位不超过2位的正整数' },
         ],
         remark: [
           { max: 200, message: '备注 长度 200 以内' },
@@ -294,15 +334,15 @@ export default {
         this.searchParams.pageIndex = method;
       }
       const searchParams = this.searchParams;
-      let whereSQL = `WHERE name LIKE '%${searchParams.name}%' `;
-      searchParams.totalMin !== null ? whereSQL += `AND total >= ${searchParams.totalMin} ` : null;
-      searchParams.totalMax !== null ? whereSQL += `AND total <= ${searchParams.totalMax} ` : null;
-      searchParams.buyPriceMin !== null ? whereSQL += `AND buy_price >= ${searchParams.buyPriceMin} ` : null;
-      searchParams.buyPriceMax !== null ? whereSQL += `AND buy_price <= ${searchParams.buyPriceMax} ` : null;
-      searchParams.sellPriceMin !== null ? whereSQL += `AND sell_price >= ${searchParams.sellPriceMin} ` : null;
-      searchParams.sellPriceMax !== null ? whereSQL += `AND sell_price <= ${searchParams.sellPriceMax} ` : null;
+      let whereSQL = `WHERE name LIKE '%${searchParams.name}%' AND remark LIKE '%${searchParams.remark}%' `;
+      searchParams.totalMin !== null ? whereSQL += `AND total_count >= ${searchParams.totalMin} ` : null;
+      searchParams.totalMax !== null ? whereSQL += `AND total_count <= ${searchParams.totalMax} ` : null;
+      searchParams.buyPriceMin !== null ? whereSQL += `AND standard_buy_unit_price >= ${searchParams.buyPriceMin} ` : null;
+      searchParams.buyPriceMax !== null ? whereSQL += `AND standard_buy_unit_price <= ${searchParams.buyPriceMax} ` : null;
+      searchParams.sellPriceMin !== null ? whereSQL += `AND standard_sell_unit_price >= ${searchParams.sellPriceMin} ` : null;
+      searchParams.sellPriceMax !== null ? whereSQL += `AND standard_sell_unit_price <= ${searchParams.sellPriceMax} ` : null;
       const pageSQL = `LIMIT ${searchParams.pageSize} OFFSET ${(searchParams.pageIndex - 1) * searchParams.pageSize} `;
-      const orderSQL = 'ORDER BY id DESC ';
+      const orderSQL = `ORDER BY id ${searchParams.sort} `;
       // 导出sql
       this.downloadExcelSQL = 'SELECT * from GOODS ' + whereSQL + orderSQL;
       const rowSQL = this.downloadExcelSQL + pageSQL;
@@ -343,6 +383,10 @@ export default {
       this.search.pageSize = pageSize;
       this.getDataList('search');
     },
+    // 双击表格某行
+    tableRowDblClick(row) {
+      this.direct(row);
+    },
     // 新增
     add() {
       this.$refs.formVali.resetFields();
@@ -371,8 +415,8 @@ export default {
                 });
                 this.modalBtnLoading = false;
               } else {
-                const SQL = `INSERT INTO GOODS (name,total,buy_price,sell_price,remark,create_time,update_time)
-          VALUES ('${modalParams.name}','${modalParams.total}','${modalParams.buy_price}','${modalParams.sell_price}','${modalParams.remark}','${Date.now()}','')`;
+                const SQL = `INSERT INTO GOODS (name,total_count,total_amount,standard_buy_unit_price,standard_sell_unit_price,remark,create_time,update_time)
+          VALUES ('${modalParams.name}','0','0','${modalParams.standard_buy_unit_price}','${modalParams.standard_sell_unit_price}','${modalParams.remark}','${Date.now()}','')`;
                 this.$logger(SQL);
                 this.$db.run(SQL, err => {
                   if (err) {
@@ -411,8 +455,8 @@ export default {
       this.modalParams = {
         id: row.id,
         name: row.name,
-        buy_price: row.buy_price,
-        sell_price: row.sell_price,
+        standard_buy_unit_price: row.standard_buy_unit_price,
+        standard_sell_unit_price: row.standard_sell_unit_price,
         remark: row.remark,
       };
       this.modalShow = true;
@@ -441,8 +485,8 @@ export default {
               } else {
                 const SQL = `UPDATE GOODS SET
           name='${modalParams.name}'
-          ,buy_price='${modalParams.buy_price}'
-          ,sell_price='${modalParams.sell_price}'
+          ,standard_buy_unit_price='${modalParams.standard_buy_unit_price}'
+          ,standard_sell_unit_price='${modalParams.standard_sell_unit_price}'
           ,remark='${modalParams.remark}'
           ,update_time='${Date.now()}'
           WHERE id = ${modalParams.id}`;
@@ -476,12 +520,21 @@ export default {
         this.addConfirm();
       }
     },
-    //  删除
+    // 删除
     del(row) {
+      this.modalParams = {
+        id: row.id,
+        name: row.name,
+        input: '',
+      };
+      this.delModalShow = true;
+    },
+    //  删除确认
+    delConfrim() {
       this.$db.serialize(() => {
         this.$db.run('BEGIN');
         // 删除所有明细
-        const deleteDetailSQL = `DELETE FROM GOODS_DETAIL_LIST WHERE goods_id = ${row.id}`;
+        const deleteDetailSQL = `DELETE FROM GOODS_DETAIL_LIST WHERE goods_id = ${this.modalParams.id}`;
         this.$logger(deleteDetailSQL);
         this.$db.run(deleteDetailSQL, err => {
           if (err) {
@@ -493,7 +546,7 @@ export default {
             });
           }
         });
-        const deleteSQL = `DELETE FROM GOODS WHERE id = ${row.id}`;
+        const deleteSQL = `DELETE FROM GOODS WHERE id = ${this.modalParams.id}`;
         this.$logger(deleteSQL);
         this.$db.run(deleteSQL, err => {
           if (err) {
@@ -506,6 +559,7 @@ export default {
           }
         });
         this.$db.run('COMMIT');
+        this.delModalShow = false;
         this.$Message.success({
           content: '删除成功',
         });
@@ -524,10 +578,10 @@ export default {
           });
         } else {
           const data = [
-            [ '品名', '数量', '进价', '售价', '备注', '创建时间', '修改时间' ],
+            [ '品名', '数量', '标准进价', '标准售价', '总金额', '备注', '创建时间', '修改时间' ],
           ];
           for (const item of res) {
-            data.push([ item.name, item.total, item.buy_price, item.sell_price, item.remark, filter.dateFilter(item.create_time), filter.dateFilter(item.update_time) ]);
+            data.push([ item.name, item.total_count, item.standard_buy_unit_price, item.standard_sell_unit_price, item.total_amount, item.remark, util.dateFilter(item.create_time), util.dateFilter(item.update_time) ]);
           }
           const name = '物品管理';
           download.excel(name, [
