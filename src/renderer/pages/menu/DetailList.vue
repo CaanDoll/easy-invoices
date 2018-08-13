@@ -441,7 +441,7 @@ export default {
             // 往物品total_count和total_amount中做运算
             const computeSQL = `UPDATE GOODS SET
             total_count = ${(modalParams.total_count + count).toFixed(3)}
-            ,total_amount = ${modalParams.total_amount + amount}
+            ,total_amount = ${(modalParams.total_amount + amount).toFixed(2)}
             WHERE id = '${modalParams.goods_id}'`;
             this.$logger(computeSQL);
             this.$db.run(computeSQL, err => {
@@ -545,7 +545,7 @@ export default {
         // 回滚运算
         const computeSQL = `UPDATE GOODS SET
         total_count = ${(row.total_count - row.count).toFixed(3)}
-        ,total_amount = ${row.total_amount - row.amount}
+        ,total_amount = ${(row.total_amount - row.amount).toFixed(2)}
         WHERE id = '${row.goods_id}'`;
         this.$logger(computeSQL);
         this.$db.run(computeSQL, err => {
