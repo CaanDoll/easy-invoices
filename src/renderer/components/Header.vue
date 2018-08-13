@@ -142,7 +142,7 @@ export default {
           case 'update-available':
             this.updateText = '有可用更新';
             this.updateInfo = {
-              releaseDate: new Date(data.releaseDate).getTime() - new Date().getTimezoneOffset() * 60 * 1000,
+              releaseDate: new Date(data.releaseDate).getTime(),
               releaseName: data.releaseName,
               releaseNotes: data.releaseNotes,
               version: data.version,
